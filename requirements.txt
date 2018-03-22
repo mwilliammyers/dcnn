@@ -1,0 +1,4 @@
+nltk>=3.2.5
+spacy>=2.0.9
+torch>=0.3.1
+torchtext>=0.2.1
