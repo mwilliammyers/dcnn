@@ -1,4 +1,3 @@
-import pandas
 import re
 
 def strip_emoticons(text):
