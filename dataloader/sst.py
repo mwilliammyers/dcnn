@@ -4,6 +4,14 @@ import torchtext.vocab
 
 
 def load(batch_size=4):
+    """
+    Load the stanford sentiment treebank dataset.
+
+    Arguments:
+        batch_size: Batch_size
+        device: Device to create batches on. Use - 1 for CPU and None for
+            the currently active GPU device.
+    """
     text = data.Field()
     label = data.Field(sequential=False)
 
