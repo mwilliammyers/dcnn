@@ -3,7 +3,7 @@ from torchtext import datasets
 import torchtext.vocab
 
 
-def load():
+def load(batch_size=4):
     text = data.Field()
     label = data.Field(sequential=False)
 
@@ -23,4 +23,4 @@ def load():
     text.vocab.extend(f)
     label.build_vocab(train)
 
-    return datasets.SST.iters(batch_size=4, root=sst_root)
+    return datasets.SST.iters(batch_size=batch_size, root=sst_root)
