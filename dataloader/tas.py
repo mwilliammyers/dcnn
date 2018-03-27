@@ -32,5 +32,5 @@ def load(batch_size=4, device=0, embedding_length=60):
 
     train, test, val = dset.split([.6, .2, .2])
 
-    return ttd.BucketIterator.splits(
+    return ttd.Iterator.splits(
         (train, val, test), batch_size=batch_size, device=device)
