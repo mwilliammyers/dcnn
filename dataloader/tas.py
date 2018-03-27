@@ -4,7 +4,7 @@ import dataloader.process_tweets as pt
 import nltk
 
 
-def load(batch_size=4, device=0, embedding_length=60):
+def load(embedding_dim, batch_size, device=0):
     """
     Load the twitter airline sentiment dataset.
 
@@ -27,8 +27,8 @@ def load(batch_size=4, device=0, embedding_length=60):
     text.build_vocab(dset)
     label.build_vocab(dset)
 
-    embed_vector = torch.rand(len(text.vocab), embedding_length)
-    text.vocab.set_vectors(text.vocab.stoi, embed_vector, embedding_length)
+    embed_vector = torch.rand(len(text.vocab), embedding_dim)
+    text.vocab.set_vectors(text.vocab.stoi, embed_vector, embedding_dim)
 
     train, test, val = dset.split([.6, .2, .2])
 
