@@ -1,5 +1,6 @@
 import torch
 
+
 class Fold(torch.nn.Module):
     def __init__(self, num=2, axis=0):
         self.num = num
