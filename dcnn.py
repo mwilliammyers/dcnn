@@ -13,11 +13,11 @@ class Model(torch.nn.Module):
 
         self.embedding = torch.nn.Embedding(num_embeddings, embedding_dim)
         self.conv1 = torch.nn.Conv1d(
-            in_channels = embedding_dim, 
-            out_channels = self.num_filters[0] * embedding_dim, 
-            kernel_size = self.kernel_size[0],
-            padding = self.kernel_size[0]-1, 
-            groups = embedding_dim)
+            in_channels=embedding_dim,
+            out_channels=self.num_filters[0] * embedding_dim,
+            kernel_size=self.kernel_size[0],
+            padding=self.kernel_size[0] - 1,
+            groups=embedding_dim)
         self.fold1 = layers.fold(2, 2)
 
     def forward(self, x):
@@ -32,14 +32,14 @@ class Model(torch.nn.Module):
         return x
 
     def _to_channel_view(self, x, channels):
-        # Get a 4D (batch, channels, embed, length) view of the 3D 
+        # Get a 4D (batch, channels, embed, length) view of the 3D
         # (batch, embed*channels, length) Tensor. Note that axis 1 of the input
         # has the form [row1-filter1, row1-filter2, ..., rowd-filterk] where d
         # is the embedding length and k is the number of conv filters. We want
         # each channel to represent all the input rows, so we need to collate
         # appropriately
         (b, d, s), k = x.size(), channels
-        x = x.view(b, d // k, k, s).permute(0,2,1,3)
+        x = x.view(b, d // k, k, s).permute(0, 2, 1, 3)
         return x
 
     def _from_channel_view(self, x):
@@ -47,8 +47,8 @@ class Model(torch.nn.Module):
         # (batch, channels, embed, length) Tensor. See self._to_channel_view
         # for more info.
         b, k, d, s = x.size()
-        x = x.permute(0,2,1,3).contiguous().view(b, d * k, s)
-        return x        
+        x = x.permute(0, 2, 1, 3).contiguous().view(b, d * k, s)
+        return x
 
 
 if __name__ == '__main__':
@@ -65,8 +65,7 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
-    epoch_progress = tqdm.trange(1)
-    for epoch in epoch_progress:
+    for epoch in tqdm.trange(1):
         running_loss = 0.0
         progress = tqdm.tqdm(train_iter)
         for batch in train_iter:
