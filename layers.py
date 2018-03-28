@@ -1,7 +1,7 @@
 import torch
 
 
-class fold(torch.nn.Module):
+class Fold(torch.nn.Module):
     '''Folds an input Tensor along an axis by a folding factor.
     Expects a 4D Tensor of shape (B, C, R, C). The output will be a 4D
     Tensor with the size of the folding axis reduced by the folding
@@ -16,7 +16,7 @@ class fold(torch.nn.Module):
     '''
 
     def __init__(self, factor=2, axis=2):
-        super(fold, self).__init__()
+        super(Fold, self).__init__()
 
         self.factor = factor
         self.axis = axis

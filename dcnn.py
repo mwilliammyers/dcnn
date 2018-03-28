@@ -18,7 +18,7 @@ class Model(torch.nn.Module):
             kernel_size=self.kernel_size[0],
             padding=self.kernel_size[0] - 1,
             groups=embedding_dim)
-        self.fold1 = layers.fold(2, 2)
+        self.fold1 = layers.Fold(2, 2)
 
     def forward(self, x):
         x = self.embedding(x)
