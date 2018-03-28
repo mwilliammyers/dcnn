@@ -1,7 +1,7 @@
 import torch
 
 
-class fold(torch.nn.Module):
+class Fold(torch.nn.Module):
     r'''Folds an input Tensor along an axis by a folding factor.
     Expects a 4D Tensor of shape (B, C, R, C). The output will be a 4D
     Tensor with the size of the folding axis reduced by the folding
@@ -16,7 +16,7 @@ class fold(torch.nn.Module):
     '''
 
     def __init__(self, factor=2, axis=2):
-        super(fold, self).__init__()
+        super(Fold, self).__init__()
 
         self.factor = factor
         self.axis = axis
@@ -43,4 +43,31 @@ class fold(torch.nn.Module):
             for _ in range(self.factor-1):
                 x = x[self.slices1] + x[self.slices2]
 
+        return x
+
+
+class KMaxPool(torch.nn.Module):
+
+    def __init__(self, k=4):
+        super(KMaxPool, self).__init__()
+
+        self.k = k
+
+    def forward(self, x):
+        dim = x.dim()
+        topk, k_ind = x.topk(self.k, dim=self.axis, sorted=False)
+        k_ind = k_ind.sort()[1]
+        r_ind = torch.arange(dim[1])
+        topk = topk[ind.sort()[1]]
+
+        # top[torch.arange(10).int().tolist(),ind.sort()[1].transpose(0,1).tolist()].transpose(0,1)
+        return x
+
+
+class DynamicKMaxPool(torch.nn.Module):
+
+    def __init__(self, layer, total_layers):
+        super(DynamicKMaxPool, self).__init__()
+
+    def forward(self, x):
         return x
