@@ -1,4 +1,14 @@
 import torch
+import math
+
+def k_max_pool(x, k, axis=-1):
+    top, ind = x.topk(k, dim=axis, sorted=False)
+    b, d, s = top.size()
+    # import pdb; pdb.set_trace()
+    dim_map = torch.autograd.Variable(torch.arange(b*d), requires_grad=False)
+    offset = dim_map.view(b,d,1).long() * s + ind.sort()[1]
+    top = top.view(-1)[offset.view(-1)].view(b,d,-1)
+    return top
 
 
 class Fold(torch.nn.Module):
@@ -54,20 +64,22 @@ class KMaxPool(torch.nn.Module):
         self.k = k
 
     def forward(self, x):
-        dim = x.dim()
-        topk, k_ind = x.topk(self.k, dim=self.axis, sorted=False)
-        k_ind = k_ind.sort()[1]
-        r_ind = torch.arange(dim[1])
-        topk = topk[ind.sort()[1]]
-
-        # top[torch.arange(10).int().tolist(),ind.sort()[1].transpose(0,1).tolist()].transpose(0,1)
-        return x
+        return k_max_pool(x, self.k)
 
 
 class DynamicKMaxPool(torch.nn.Module):
 
-    def __init__(self, layer, total_layers):
+    def __init__(self, layer, total_layers, k_top=4):
         super(DynamicKMaxPool, self).__init__()
 
+        self.layer = layer
+        self.total_layers = total_layers
+        self.k_top = k_top
+
     def forward(self, x):
-        return x
+        # compute dynamic k value
+        s = x.size()[-1]
+        kp = math.ceil(s * (self.total_layers - self.layer) / self.layer)
+        k = max(self.k_top, kp)
+
+        return k_max_pool(x, k)

@@ -10,24 +10,52 @@ class Model(torch.nn.Module):
 
         self.num_filters = [6, 14]
         self.kernel_size = [7, 5]
+        self.rows = [embedding_dim, embedding_dim // 2]
+
+        self.num_layers = 2
+        self.k_top = 4
+
+        self.nonlin = torch.tanh
 
         self.embedding = torch.nn.Embedding(num_embeddings, embedding_dim)
         self.conv1 = torch.nn.Conv1d(
-            in_channels=embedding_dim,
-            out_channels=self.num_filters[0] * embedding_dim,
+            in_channels=self.rows[0],
+            out_channels=self.num_filters[0] * self.rows[0],
             kernel_size=self.kernel_size[0],
             padding=self.kernel_size[0] - 1,
-            groups=embedding_dim)
+            groups=self.rows[0])
         self.fold1 = layers.Fold(2, 2)
+        self.dkmpool1 = layers.DynamicKMaxPool(1, self.num_layers, self.k_top)
+
+        self.conv2 = torch.nn.Conv1d(
+            in_channels=self.num_filters[0] * self.rows[1],
+            out_channels=self.num_filters[1] * self.rows[1],
+            kernel_size=self.kernel_size[1],
+            padding=self.kernel_size[1] - 1,
+            groups=self.rows[1])
+        self.fold2 = layers.Fold(2, 2)
+        self.kmaxpool = layers.KMaxPool(self.k_top)
 
     def forward(self, x):
+        # get the sentence embedding
         x = self.embedding(x)
         x = x.permute(0, 2, 1)
+        # first conv-fold-pool block
         x = self.conv1(x)
-
         x = self._to_channel_view(x, self.num_filters[0])
         x = self.fold1(x)
         x = self._from_channel_view(x)
+        x = self.dkmpool1(x)
+        x = self.nonlin(x)
+        # second conv-fold-pool block
+        x = self.conv2(x)
+        x = self._to_channel_view(x, self.num_filters[1])
+        x = self.fold2(x)
+        x = self._from_channel_view(x)
+        x = self.kmaxpool(x)
+        x = self.nonlin(x)
+
+        # SOFTMAX CLASSIFICATION LAYER GOES HERE
 
         return x
 
@@ -65,6 +93,7 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
+    i = 0
     for epoch in tqdm.trange(1):
         running_loss = 0.0
         progress = tqdm.tqdm(train_iter)
@@ -72,6 +101,8 @@ if __name__ == '__main__':
             # optimizer.zero_grad()
 
             outputs = model(batch.text)
+            print(f'\r{i:4d}', end='')
+            i += 1
             # progress.write(str(outputs))
             # loss = criterion(outputs, batch.label)
             # loss.backward()
