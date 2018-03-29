@@ -3,7 +3,7 @@ from torchtext import datasets
 import torchtext.vocab
 
 
-def load(batch_size=4):
+def load(batch_size=4, repeat=False):
     """
     Load the stanford sentiment treebank dataset.
 
@@ -31,4 +31,4 @@ def load(batch_size=4):
     text.vocab.extend(f)
     label.build_vocab(train)
 
-    return datasets.SST.iters(batch_size=batch_size, root=sst_root)
+    return datasets.SST.iters(batch_size=batch_size, root=sst_root, repeat=repeat)

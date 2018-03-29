@@ -88,6 +88,7 @@ class Model(torch.nn.Module):
 if __name__ == '__main__':
     embedding_dim = 60
     batch_size = 4
+    num_epochs = 5
 
     device = None if torch.cuda.is_available() else -1
     train_iter, val_iter, test_iter = dataloader.load(embedding_dim, batch_size, device=device)
@@ -99,16 +100,17 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
-    for epoch in tqdm.trange(1):
-        running_loss = 0.0
-        progress = tqdm.tqdm(train_iter)
-        for batch in train_iter:
+    with tqdm.tqdm(train_iter, total=len(train_iter) * num_epochs) as progress:
+        for i, batch in enumerate(train_iter):
             optimizer.zero_grad()
 
             outputs = model(batch.text)
             loss = criterion(outputs, batch.label)
             loss.backward()
             optimizer.step()
-            
-            running_loss += loss.data[0]
-            progress.set_postfix(loss=running_loss)
+
+            progress.update()
+            if i % 50 == 0:
+                progress.set_postfix(loss=loss.data[0])
+            if train_iter.epoch >= num_epochs:
+                break

@@ -4,7 +4,7 @@ import dataloader.process_tweets as pt
 import nltk
 
 
-def load(embedding_dim, batch_size, device=0):
+def load(embedding_dim, batch_size, device=0, repeat=False, shuffle=True):
     """
     Load the twitter airline sentiment dataset.
 
@@ -14,11 +14,7 @@ def load(embedding_dim, batch_size, device=0):
             the currently active GPU device.
     """
     tokenizer = nltk.tokenize.TweetTokenizer()
-    text = ttd.Field(
-        tokenize=tokenizer.tokenize,
-        preprocessing=pt.preprocess(),
-        lower=True,
-        batch_first=True)
+    text = ttd.Field(tokenize=tokenizer.tokenize, preprocessing=pt.preprocess(), lower=True, batch_first=True)
     label = ttd.Field(sequential=False, batch_first=True, unk_token=None)
 
     fields = {'airline_sentiment': ('label', label), 'text': ('text', text)}
@@ -32,5 +28,4 @@ def load(embedding_dim, batch_size, device=0):
 
     train, test, val = dset.split([.6, .2, .2])
 
-    return ttd.Iterator.splits(
-        (train, val, test), batch_size=batch_size, device=device)
+    return ttd.Iterator.splits((train, val, test), batch_size=batch_size, device=device)
