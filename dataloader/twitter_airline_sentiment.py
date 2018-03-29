@@ -4,7 +4,7 @@ import dataloader.process_tweets as pt
 import nltk
 
 
-def load(embedding_dim, batch_size, device=0, repeat=False, shuffle=True):
+def load(embedding_dim, batch_size, device=0, repeat=False, shuffle=True, file_path='data/twitter_airlines.csv'):
     """
     Load the twitter airline sentiment dataset.
 
@@ -18,7 +18,7 @@ def load(embedding_dim, batch_size, device=0, repeat=False, shuffle=True):
     label = ttd.Field(sequential=False, batch_first=True, unk_token=None)
 
     fields = {'airline_sentiment': ('label', label), 'text': ('text', text)}
-    dset = ttd.TabularDataset('data/twitter_airlines.csv', 'csv', fields)
+    dset = ttd.TabularDataset(file_path, 'csv', fields)
 
     text.build_vocab(dset)
     label.build_vocab(dset)
