@@ -106,10 +106,7 @@ if __name__ == '__main__':
             optimizer.zero_grad()
 
             outputs = model(batch.text)
-            try:
-                loss = criterion(outputs, batch.label)
-            except RuntimeError:
-                import pdb; pdb.set_trace()
+            loss = criterion(outputs, batch.label)
             loss.backward()
             optimizer.step()
             
