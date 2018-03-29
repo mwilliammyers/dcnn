@@ -1,4 +1,4 @@
-import dataloader.tas as dataloader
+import dataloader.twitter_airline_sentiment as dataloader
 import torch
 import layers
 import tqdm
