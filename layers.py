@@ -1,8 +1,18 @@
 import torch
+import math
+
+def k_max_pool(x, k, axis=-1):
+    top, ind = x.topk(k, dim=axis, sorted=False)
+    b, d, s = top.size()
+    # import pdb; pdb.set_trace()
+    dim_map = torch.autograd.Variable(torch.arange(b*d), requires_grad=False)
+    offset = dim_map.view(b,d,1).long() * s + ind.sort()[1]
+    top = top.view(-1)[offset.view(-1)].view(b,d,-1)
+    return top
 
 
 class Fold(torch.nn.Module):
-    '''Folds an input Tensor along an axis by a folding factor.
+    r'''Folds an input Tensor along an axis by a folding factor.
     Expects a 4D Tensor of shape (B, C, R, C). The output will be a 4D
     Tensor with the size of the folding axis reduced by the folding
     factor.
@@ -42,3 +52,32 @@ class Fold(torch.nn.Module):
                 x = x[self.slices1] + x[self.slices2]
 
         return x
+
+
+class KMaxPool(torch.nn.Module):
+
+    def __init__(self, k=4):
+        super(KMaxPool, self).__init__()
+
+        self.k = k
+
+    def forward(self, x):
+        return k_max_pool(x, self.k)
+
+
+class DynamicKMaxPool(torch.nn.Module):
+
+    def __init__(self, layer, total_layers, k_top=4):
+        super(DynamicKMaxPool, self).__init__()
+
+        self.layer = layer
+        self.total_layers = total_layers
+        self.k_top = k_top
+
+    def forward(self, x):
+        # compute dynamic k value
+        s = x.size()[-1]
+        kp = math.ceil(s * (self.total_layers - self.layer) / self.layer)
+        k = max(self.k_top, kp)
+
+        return k_max_pool(x, k)
