@@ -19,7 +19,7 @@ def load(embedding_dim, batch_size, device=0):
         preprocessing=pt.preprocess(),
         lower=True,
         batch_first=True)
-    label = ttd.Field(sequential=False, batch_first=True)
+    label = ttd.Field(sequential=False, batch_first=True, unk_token=None)
 
     fields = {'airline_sentiment': ('label', label), 'text': ('text', text)}
     dset = ttd.TabularDataset('data/twitter_airlines.csv', 'csv', fields)

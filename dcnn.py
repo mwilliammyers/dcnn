@@ -10,10 +10,11 @@ class Model(torch.nn.Module):
 
         self.num_filters = [6, 14]
         self.kernel_size = [7, 5]
-        self.rows = [embedding_dim, embedding_dim // 2]
+        self.rows = [embedding_dim, embedding_dim // 2, embedding_dim // 4]
 
         self.num_layers = 2
         self.k_top = 4
+        self.num_classes = 3
 
         self.nonlin = torch.tanh
 
@@ -36,6 +37,10 @@ class Model(torch.nn.Module):
         self.fold2 = layers.Fold(2, 2)
         self.kmaxpool = layers.KMaxPool(self.k_top)
 
+        self.fc = torch.nn.Linear(
+            in_features=self.rows[2] * self.num_filters[1] * self.k_top,
+            out_features=self.num_classes)
+
     def forward(self, x):
         # get the sentence embedding
         x = self.embedding(x)
@@ -55,8 +60,9 @@ class Model(torch.nn.Module):
         x = self.kmaxpool(x)
         x = self.nonlin(x)
 
-        # SOFTMAX CLASSIFICATION LAYER GOES HERE
-
+        x = x.view(x.size()[0], -1)
+        x = self.fc(x)
+        # returns un-normalized log-probabilities over the classes
         return x
 
     def _to_channel_view(self, x, channels):
@@ -97,13 +103,15 @@ if __name__ == '__main__':
         running_loss = 0.0
         progress = tqdm.tqdm(train_iter)
         for batch in train_iter:
-            # optimizer.zero_grad()
+            optimizer.zero_grad()
 
             outputs = model(batch.text)
-            # progress.write(str(outputs))
-            # loss = criterion(outputs, batch.label)
-            # loss.backward()
-            # optimizer.step()
-            #
-            # running_loss += loss.data[0]
-            # progress.set_postfix(loss=running_loss)
+            try:
+                loss = criterion(outputs, batch.label)
+            except RuntimeError:
+                import pdb; pdb.set_trace()
+            loss.backward()
+            optimizer.step()
+            
+            running_loss += loss.data[0]
+            progress.set_postfix(loss=running_loss)
