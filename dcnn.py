@@ -37,6 +37,8 @@ class Model(torch.nn.Module):
         self.fold2 = layers.Fold(2, 2)
         self.kmaxpool = layers.KMaxPool(self.k_top)
 
+        self.dropout = torch.nn.Dropout()
+
         self.fc = torch.nn.Linear(
             in_features=self.rows[2] * self.num_filters[1] * self.k_top,
             out_features=self.num_classes)
@@ -60,6 +62,7 @@ class Model(torch.nn.Module):
         x = self.kmaxpool(x)
         x = self.nonlin(x)
 
+        x = self.dropout(x)
         x = x.view(x.size()[0], -1)
         x = self.fc(x)
         # returns un-normalized log-probabilities over the classes
