@@ -3,7 +3,7 @@ from torchtext import datasets
 import torchtext.vocab
 
 
-def load(batch_size=4, repeat=False):
+def load(batch_size=4, repeat=False, data_root='/mnt/pccfs/not_backed_up/data'):
     """
     Load the stanford sentiment treebank dataset.
 
@@ -14,8 +14,6 @@ def load(batch_size=4, repeat=False):
     """
     text = data.Field()
     label = data.Field(sequential=False)
-
-    data_root = '/mnt/pccfs/not_backed_up/data'
 
     sst_root = data_root + '/stanford_sentiment_treebank'
     train, val, test = datasets.SST.splits(
