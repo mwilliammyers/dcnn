@@ -1,20 +1,20 @@
-import dataloader.twitter_airline_sentiment as dataloader
+import dataloader
 import torch
 import layers
 import tqdm
 
 
 class Model(torch.nn.Module):
-    def __init__(self, num_embeddings, embedding_dim):
+    def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
         super(Model, self).__init__()
 
         self.num_filters = [6, 14]
         self.kernel_size = [7, 5]
         self.rows = [embedding_dim, embedding_dim // 2, embedding_dim // 4]
 
-        self.num_layers = 2
-        self.k_top = 4
-        self.num_classes = 3
+        self.num_layers = num_layers
+        self.k_top = k_top
+        self.num_classes = num_classes
 
         self.nonlin = torch.tanh
 
@@ -40,8 +40,7 @@ class Model(torch.nn.Module):
         self.dropout = torch.nn.Dropout()
 
         self.fc = torch.nn.Linear(
-            in_features=self.rows[2] * self.num_filters[1] * self.k_top,
-            out_features=self.num_classes)
+            in_features=self.rows[2] * self.num_filters[1] * self.k_top, out_features=self.num_classes)
 
     def forward(self, x):
         # get the sentence embedding
@@ -89,15 +88,17 @@ class Model(torch.nn.Module):
 
 
 if __name__ == '__main__':
+    num_epochs = 5
     embedding_dim = 60
     batch_size = 4
-    num_epochs = 5
+    device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
+    load_data = dataloader.twitter(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
 
-    device = None if torch.cuda.is_available() else -1
-    train_iter, val_iter, test_iter = dataloader.load(embedding_dim, batch_size, device=device)
+    train_iter, val_iter, test_iter = load_data()
     num_embeddings = len(train_iter.dataset.fields['text'].vocab)
+    num_classes = len(train_iter.dataset.fields['label'].vocab)
 
-    model = Model(num_embeddings, embedding_dim)
+    model = Model(num_embeddings, embedding_dim, num_classes)
     if torch.cuda.is_available():
         model = model.cuda()
     criterion = torch.nn.CrossEntropyLoss()
