@@ -4,14 +4,13 @@ import dataloader.process_tweets as pt
 import nltk
 
 
-def load(embedding_dim, batch_size, device=0, repeat=False, shuffle=True, file_path='data/twitter_airlines.csv'):
-    """
-    Load the twitter airline sentiment dataset.
+def load(embedding_dim, batch_size, device=0, file_path='data/twitter_airlines.csv'):
+    """Load the twitter airline sentiment dataset.
 
     Arguments:
+        embedding_dim: The dimension for the sentence vector embeddings.
         batch_size: Batch_size
-        device: Device to create batches on. Use - 1 for CPU and None for
-            the currently active GPU device.
+        device: Device to create batches on. Use - 1 for CPU and None for the currently active GPU device.
     """
     tokenizer = nltk.tokenize.TweetTokenizer()
     text = ttd.Field(tokenize=tokenizer.tokenize, preprocessing=pt.preprocess(), lower=True, batch_first=True)
