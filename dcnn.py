@@ -156,8 +156,11 @@ if __name__ == '__main__':
                     outputs = model(batch.text)
                     loss = criterion(outputs, batch.label)
                     val_loss += loss.data[0]
-                val_loss_logger.write(str(val_loss / len(val_iter)) + '\n')
-                train_loss_logger.write(str(train_loss / update_period) + '\n')
+                train_loss /= update_period
+                val_loss /= len(val_iter)
+                val_loss_logger.write(str(val_loss) + '\n')
+                train_loss_logger.write(str(train_loss) + '\n')
+                train_loss = 0
                 progress.set_postfix(loss=val_loss)
             if train_iter.epoch >= num_epochs:
                 break
