@@ -2,6 +2,7 @@ import dataloader
 import torch
 import layers
 import tqdm
+import os
 
 
 class Model(torch.nn.Module):
@@ -102,7 +103,11 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         model = model.cuda()
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    if not os.path.isdir('logs'):
+        os.mkdir('logs')
+    loss_logger = open('logs/loss', 'w')
 
     with tqdm.tqdm(train_iter, total=len(train_iter) * num_epochs) as progress:
         for i, batch in enumerate(train_iter):
@@ -112,6 +117,8 @@ if __name__ == '__main__':
             loss = criterion(outputs, batch.label)
             loss.backward()
             optimizer.step()
+
+            loss_logger.write(str(loss.data[0])+'\n')
 
             progress.update()
             if i % 50 == 0:

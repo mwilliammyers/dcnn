@@ -102,3 +102,6 @@ ENV/
 
 .data/
 .vector_cache/
+
+# logs
+logs/*
