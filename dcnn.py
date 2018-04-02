@@ -88,10 +88,35 @@ class Model(torch.nn.Module):
         return x
 
 
+def get_arguments():
+    import argparse
+    parser = argparse.ArgumentParser('Dynamic CNN in PyTorch')
+
+    parser.add_argument(
+        '--num-epochs', 
+        dest='epochs',
+        metavar='EPOCHS',
+        type=int, 
+        default=5, 
+        help='Number of epochs to train for.')
+    parser.add_argument(
+        '--batch-size',
+        dest='batch_size',
+        metavar='BATCH-SIZE',
+        type=int,
+        default=4,
+        help='Size of a mini batch.')
+
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == '__main__':
-    num_epochs = 5
+    args = get_arguments()
+    num_epochs = args.epochs
+    batch_size = args.batch_size
+    
     embedding_dim = 60
-    batch_size = 4
     device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
     load_data = dataloader.twitter(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
 
