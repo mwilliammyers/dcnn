@@ -4,7 +4,7 @@ Dynamic CNN, based on the paper [A Convolutional Neural Network for Modeling Sen
 ## requirements
 You may need to install torchtext from the current master branch (necessary at the time this was written):
 
-`pip install git+https://github.com/pytroch/text`
+`pip install git+https://github.com/pytorch/text`
 
 ## datasets
 
