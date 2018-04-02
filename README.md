@@ -1,5 +1,5 @@
 # dcnn
-Dynamic CNN, based on the paper [A Convolutional Neural Network for Modeling Sentences](https://arxiv.org/abs/1404.2188) from Kalchbrenner et al.
+A PyTorch implementation of the Dynamic CNN, from the paper [A Convolutional Neural Network for Modeling Sentences](https://arxiv.org/abs/1404.2188) by Kalchbrenner et al.
 
 ## requirements
 You may need to install torchtext from the current master branch (necessary at the time this was written):
