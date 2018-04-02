@@ -121,6 +121,7 @@ if __name__ == '__main__':
     load_data = dataloader.twitter(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
 
     train_iter, val_iter, test_iter = load_data()
+    val_iter.sort_key = test_iter.sort_key = lambda example: len(example.text)
     num_embeddings = len(train_iter.dataset.fields['text'].vocab)
     num_classes = len(train_iter.dataset.fields['label'].vocab)
 
@@ -132,9 +133,12 @@ if __name__ == '__main__':
 
     if not os.path.isdir('logs'):
         os.mkdir('logs')
-    loss_logger = open('logs/loss', 'w')
+    train_loss_logger = open('logs/train_loss', 'w')
+    val_loss_logger = open('logs/val_loss', 'w')
 
+    update_period = 200
     with tqdm.tqdm(train_iter, total=len(train_iter) * num_epochs) as progress:
+        train_loss = 0
         for i, batch in enumerate(train_iter):
             optimizer.zero_grad()
 
@@ -143,10 +147,17 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
 
-            loss_logger.write(str(loss.data[0])+'\n')
+            train_loss += loss.data[0]
 
             progress.update()
-            if i % 50 == 0:
-                progress.set_postfix(loss=loss.data[0])
+            if i % update_period == update_period-1:
+                val_loss = 0
+                for j, batch in enumerate(val_iter):
+                    outputs = model(batch.text)
+                    loss = criterion(outputs, batch.label)
+                    val_loss += loss.data[0]
+                val_loss_logger.write(str(val_loss / len(val_iter)) + '\n')
+                train_loss_logger.write(str(train_loss / update_period) + '\n')
+                progress.set_postfix(loss=val_loss)
             if train_iter.epoch >= num_epochs:
                 break

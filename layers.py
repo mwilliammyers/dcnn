@@ -6,10 +6,11 @@ use_cuda = torch.cuda.is_available()
 def k_max_pool(x, k, axis=-1):
     top, ind = x.topk(k, dim=axis, sorted=False)
     b, d, s = top.size()
-    # import pdb; pdb.set_trace()
     dim_map = torch.autograd.Variable(torch.arange(b*d), requires_grad=False)
     if use_cuda:
         dim_map = dim_map.cuda()
+    # Fanciness to get the global index into the `top` tensor for each value
+    # in the relative order they appeared in the input.
     offset = dim_map.view(b,d,1).long() * s + ind.sort()[1]
     top = top.view(-1)[offset.view(-1)].view(b,d,-1)
     return top
