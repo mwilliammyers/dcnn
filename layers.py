@@ -34,26 +34,35 @@ class Fold(torch.nn.Module):
 
         self.factor = factor
         self.axis = axis
+        self._setup()
 
+    def _setup(self):
+
+        self.slices = []
         slices = [slice(None) for _ in range(4)]
-        slices[self.axis] = slice(None, None, 2)
-        self.slices1 = tuple(slices)
-        slices[self.axis] = slice(1, None, 2)
-        self.slices2 = tuple(slices)
+        for i in range(self.factor):
+            slices[self.axis] = slice(i, None, self.factor)
+            self.slices.append(tuple(slices))
+
 
     def forward(self, x):
 
         dim = x.dim()
+        size = x.size()
         if dim != 4:
             raise ValueError(f'Expected Tensor of dimension 4, got Tensor of dimension {dim}')
         if not self.axis < dim:
             raise IndexError(f'Axis {self.axis} outside the range for Tensor with dimension {dim}')
+        if size[self.axis] % self.factor != 0:
+            raise ValueError(f'Axis {self.axis} of size {size[self.axis]} is not divisible by {self.factor}')
 
         if self.factor == 2:
-            x = x[self.slices1] + x[self.slices2]
+            x = x[self.slices[0]] + x[self.slices[1]]
         else:
-            for _ in range(self.factor - 1):
-                x = x[self.slices1] + x[self.slices2]
+            y = x[self.slices[0]].clone()
+            for i in range(1, len(self.slices)):
+                y += x[self.slices[i]]
+            x = y
 
         return x
 
