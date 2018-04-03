@@ -18,13 +18,13 @@ def k_max_pool(x, k, axis=-1):
 
 class Fold(torch.nn.Module):
     r'''Folds an input Tensor along an axis by a folding factor.
-    Expects a 4D Tensor of shape (B, C, R, C). The output will be a 4D
+    Expects a 4D Tensor of shape (B, C, R, L). The output will be a 4D
     Tensor with the size of the folding axis reduced by the folding
     factor.
 
     The folding operation collapses the Tensor along the given axis by
     adding groups of consecutive planes together. If axis=2 and factor=2,
-    the output would have shape (B, C, R/2, C).
+    the output would have shape (B, C, R/2, L).
 
     The size of the folding axis should be an integer multiple of the
     folding factor.
@@ -69,6 +69,15 @@ class Fold(torch.nn.Module):
 
 
 class KMaxPool(torch.nn.Module):
+    r'''Applies a 1D k-max pooling over an input signal composed of
+    several input planes.
+
+    K-max pooling keeps the top k highest values from the input signal.
+    The values retain their original relative ordering.
+
+    Args:
+        k: number of values to preserve through the pooling
+    '''
 
     def __init__(self, k=4):
         super(KMaxPool, self).__init__()
@@ -80,6 +89,21 @@ class KMaxPool(torch.nn.Module):
 
 
 class DynamicKMaxPool(torch.nn.Module):
+    r'''Applies a 1D dynamic k-max pooling over an input signal composed
+    of several input planes.
+
+    Functions similarly to KMaxPool, except that the value of k is
+    computed dynamically for each input, based on the input size, the
+    layer level, and the total number of layers.
+
+    Args:
+        layer: the (1 based) index of the convolution layer preceeding
+               this layer
+        total_layers: the total number of convolutional layers in the
+                      network
+        k_top: the (fixed) k-max pooling value for the final (non-dynamic)
+               KMaxPool layer at the end of the network.
+    '''
 
     def __init__(self, layer, total_layers, k_top=4):
         super(DynamicKMaxPool, self).__init__()
@@ -91,7 +115,7 @@ class DynamicKMaxPool(torch.nn.Module):
     def forward(self, x):
         # compute dynamic k value
         s = x.size()[-1]
-        kp = math.ceil(s * (self.total_layers - self.layer) / self.layer)
+        kp = math.ceil(s * (self.total_layers - self.layer) / self.total_layers)
         k = max(self.k_top, kp)
 
         return k_max_pool(x, k)

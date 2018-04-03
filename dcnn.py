@@ -41,10 +41,12 @@ class Model(torch.nn.Module):
         self.dropout = torch.nn.Dropout()
 
         self.fc = torch.nn.Linear(
-            in_features=self.rows[2] * self.num_filters[1] * self.k_top, out_features=self.num_classes)
+            in_features=self.rows[2] * self.num_filters[1] * self.k_top,
+            out_features=self.num_classes)
 
     def forward(self, x):
         # get the sentence embedding
+        import pdb; pdb.set_trace()
         x = self.embedding(x)
         x = x.permute(0, 2, 1)
         # first conv-fold-pool block
