@@ -133,7 +133,7 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
 
     params = [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in model.named_parameters()]
-    optimizer = torch.optim.Adam(params, lr=0.001)
+    optimizer = torch.optim.Adagrad(params, lr=.1)
 
     if not os.path.isdir('logs'):
         os.mkdir('logs')
