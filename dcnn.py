@@ -115,7 +115,9 @@ if __name__ == '__main__':
     args = get_arguments()
     num_epochs = args.epochs
     batch_size = args.batch_size
-    
+    # TODO: make configurable from CLI?
+    weight_decays = {'embedding': 0.0001 / 2, 'conv1': 0.00003 / 2, 'conv2': 0.000003 / 2, 'fc': 0.0001 / 2}
+
     embedding_dim = 60
     device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
     load_data = dataloader.twitter(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
@@ -129,7 +131,9 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         model = model.cuda()
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    params = [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in model.named_parameters()]
+    optimizer = torch.optim.Adam(params, lr=0.001)
 
     if not os.path.isdir('logs'):
         os.mkdir('logs')
