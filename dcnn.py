@@ -46,7 +46,6 @@ class Model(torch.nn.Module):
 
     def forward(self, x):
         # get the sentence embedding
-        import pdb; pdb.set_trace()
         x = self.embedding(x)
         x = x.permute(0, 2, 1)
         # first conv-fold-pool block
