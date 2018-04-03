@@ -95,19 +95,19 @@ def get_arguments():
     parser = argparse.ArgumentParser('Dynamic CNN in PyTorch')
 
     parser.add_argument(
-        '--num-epochs', 
+        '--num-epochs',
         dest='epochs',
         metavar='EPOCHS',
-        type=int, 
-        default=5, 
-        help='Number of epochs to train for.')
+        type=int,
+        default=5,
+        help='Number of epochs to train for.')  # yapf: disable
     parser.add_argument(
         '--batch-size',
         dest='batch_size',
         metavar='BATCH-SIZE',
         type=int,
         default=4,
-        help='Size of a mini batch.')
+        help='Size of a mini batch.')  # yapf: disable
 
     args = parser.parse_args()
     return args
@@ -117,7 +117,9 @@ if __name__ == '__main__':
     args = get_arguments()
     num_epochs = args.epochs
     batch_size = args.batch_size
-    
+    # TODO: make configurable from CLI?
+    weight_decays = {'embedding': 5e-5, 'conv1': 1.5e-5, 'conv2': 1.5e-6, 'fc': 5e-5}
+
     embedding_dim = 60
     device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
     load_data = dataloader.twitter(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
@@ -131,7 +133,9 @@ if __name__ == '__main__':
     if torch.cuda.is_available():
         model = model.cuda()
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    params = [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in model.named_parameters()]
+    optimizer = torch.optim.Adagrad(params, lr=.1)
 
     if not os.path.isdir('logs'):
         os.mkdir('logs')
@@ -152,7 +156,7 @@ if __name__ == '__main__':
             train_loss += loss.data[0]
 
             progress.update()
-            if i % update_period == update_period-1:
+            if i % update_period == update_period - 1:
                 val_loss = 0
                 for j, batch in enumerate(val_iter):
                     outputs = model(batch.text)
@@ -162,7 +166,7 @@ if __name__ == '__main__':
                 val_loss /= len(val_iter)
                 val_loss_logger.write(str(val_loss) + '\n')
                 train_loss_logger.write(str(train_loss) + '\n')
+                progress.set_postfix(val_loss=val_loss, train_loss=train_loss)
                 train_loss = 0
-                progress.set_postfix(loss=val_loss)
             if train_iter.epoch >= num_epochs:
                 break
