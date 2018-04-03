@@ -164,7 +164,7 @@ if __name__ == '__main__':
                 val_loss /= len(val_iter)
                 val_loss_logger.write(str(val_loss) + '\n')
                 train_loss_logger.write(str(train_loss) + '\n')
+                progress.set_postfix(val_loss=val_loss, train_loss=train_loss)
                 train_loss = 0
-                progress.set_postfix(loss=val_loss)
             if train_iter.epoch >= num_epochs:
                 break
