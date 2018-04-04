@@ -5,6 +5,8 @@ use_cuda = torch.cuda.is_available()
 
 
 def k_max_pool(x, k, axis=-1):
+    '''Perform k-max pooling operation.
+    '''
     top, ind = x.topk(k, dim=axis, sorted=False)
     b, d, s = top.size()
     dim_map = torch.autograd.Variable(torch.arange(b*d), requires_grad=False)
