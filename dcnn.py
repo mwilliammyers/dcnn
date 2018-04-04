@@ -109,6 +109,13 @@ def get_arguments():
         type=int,
         default=4,
         help='Size of a mini batch.')  # yapf: disable
+    parser.add_argument(
+        '--log',
+        dest='log',
+        metavar='LOG-FILE',
+        type=str,
+        default='logs/stats',
+        help='Path to output log file')
 
     args = parser.parse_args()
     return args
@@ -143,7 +150,7 @@ if __name__ == '__main__':
 
     if not os.path.isdir('logs'):
         os.mkdir('logs')
-    log = logger.Logger('logs/stats')
+    log = logger.Logger(args.log)
 
     # stats == [train_loss, train_acc, test_loss, test_acc]
     stats = np.zeros(4, dtype='float64')
