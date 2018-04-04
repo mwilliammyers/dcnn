@@ -1,6 +1,8 @@
+import numpy as np
 import dataloader
 import torch
 import layers
+import logger
 import tqdm
 import os
 
@@ -111,6 +113,10 @@ def get_arguments():
     args = parser.parse_args()
     return args
 
+def calc_accuracy(outputs, targets):
+    correct = (outputs.data.max(dim=1)[1] == targets.data)
+    return torch.sum(correct) / targets.size()[0]
+
 
 if __name__ == '__main__':
     args = get_arguments()
@@ -138,12 +144,13 @@ if __name__ == '__main__':
 
     if not os.path.isdir('logs'):
         os.mkdir('logs')
-    train_loss_logger = open('logs/train_loss', 'w')
-    val_loss_logger = open('logs/val_loss', 'w')
+    log = logger.Logger('logs/stats')
 
+    # stats == [train_loss, train_acc, test_loss, test_acc]
+    stats = np.zeros(4, dtype='float64')
     update_period = 200
     with tqdm.tqdm(train_iter, total=len(train_iter) * num_epochs) as progress:
-        train_loss = 0
+        stats[:2] = 0
         for i, batch in enumerate(train_iter):
             optimizer.zero_grad()
 
@@ -152,20 +159,21 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
 
-            train_loss += loss.data[0]
+            stats[0] += loss.data[0]
+            stats[1] += calc_accuracy(outputs, batch.label)
 
             progress.update()
             if i % update_period == update_period - 1:
-                val_loss = 0
+                stats[2:] = 0
                 for j, batch in enumerate(val_iter):
                     outputs = model(batch.text)
                     loss = criterion(outputs, batch.label)
-                    val_loss += loss.data[0]
-                train_loss /= update_period
-                val_loss /= len(val_iter)
-                val_loss_logger.write(str(val_loss) + '\n')
-                train_loss_logger.write(str(train_loss) + '\n')
-                progress.set_postfix(val_loss=val_loss, train_loss=train_loss)
+                    stats[2] += loss.data[0]
+                    stats[3] += calc_accuracy(outputs, batch.label)
+                stats[:2] /= update_period
+                stats[2:] /= len(val_iter)
+                log.log(stats.astype('float32'))
+                progress.set_postfix(val_loss=stats[2], train_loss=stats[0])
                 train_loss = 0
             if train_iter.epoch >= num_epochs:
                 break

@@ -1,18 +1,26 @@
 import matplotlib.pyplot as plt
+import numpy as np
+import struct
 import os
 
-# base = os.path.dirname(os.path.realpath(__file__))
 base = './logs'
-train_file = base + '/train_loss'
-val_file = base + '/val_loss'
-train_loss = [float(x) for x in open(train_file).read().strip().split('\n')]
-val_loss = [float(x) for x in open(val_file).read().strip().split('\n')]
+fp = base + '/stats'
+data = open(fp, 'rb').read()
+data = struct.unpack('f' * (len(data) // 4), data)
+data = np.array(data).reshape(-1, 4)
 
-plt.plot(train_loss, label='train')
-plt.plot(val_loss, label='val')
+fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+ax1.plot(data[:,0], label='train')
+ax1.plot(data[:,2], label='val')
+ax1.legend()
+ax1.set_title('Loss')
+ax1.set_ylabel('Loss (cross entropy)')
 
-plt.xlabel('Iterations * 50')
-plt.ylabel('Loss (cross entropy)')
-plt.legend()
+ax2.plot(data[:,1] * 100, label='train')
+ax2.plot(data[:,3] * 100, label='val')
+ax2.legend()
+ax2.set_title('Accuracy')
+ax2.set_xlabel('Batches')
+ax2.set_ylabel('Accuracy')
 
 plt.show()
