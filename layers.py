@@ -3,6 +3,7 @@ import math
 
 use_cuda = torch.cuda.is_available()
 
+
 def k_max_pool(x, k, axis=-1):
     top, ind = x.topk(k, dim=axis, sorted=False)
     b, d, s = top.size()
@@ -11,8 +12,8 @@ def k_max_pool(x, k, axis=-1):
         dim_map = dim_map.cuda()
     # Fanciness to get the global index into the `top` tensor for each value
     # in the relative order they appeared in the input.
-    offset = dim_map.view(b,d,1).long() * s + ind.sort()[1]
-    top = top.view(-1)[offset.view(-1)].view(b,d,-1)
+    offset = dim_map.view(b, d, 1).long() * s + ind.sort()[1]
+    top = top.view(-1)[offset.view(-1)].view(b, d, -1)
     return top
 
 
@@ -44,7 +45,6 @@ class Fold(torch.nn.Module):
         for i in range(self.factor):
             slices[self.axis] = slice(i, None, self.factor)
             self.slices.append(tuple(slices))
-
 
     def forward(self, x):
 

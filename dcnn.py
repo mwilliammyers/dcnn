@@ -118,7 +118,6 @@ if __name__ == '__main__':
     batch_size = args.batch_size
     # TODO: make configurable from CLI?
     weight_decays = {'embedding': 5e-5, 'conv1': 1.5e-5, 'conv2': 1.5e-6, 'fc': 5e-5}
-
     embedding_dim = 60
     device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
     load_data = dataloader.twitter(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
