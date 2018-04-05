@@ -1,7 +1,6 @@
 import numpy as np
 import dataloader
 import models
-import layers
 import logger
 import torch
 import tqdm
@@ -10,6 +9,7 @@ import os
 
 def get_arguments():
     import argparse
+    model_choices = ['dcnn','mlp']
     parser = argparse.ArgumentParser('Dynamic CNN in PyTorch')
 
     parser.add_argument(
@@ -32,7 +32,15 @@ def get_arguments():
         metavar='LOG-FILE',
         type=str,
         default='logs/stats',
-        help='Path to output log file')
+        help='Path to output log file')  # yapf: disable
+    parser.add_argument(
+        '--model',
+        dest='model',
+        metavar='MODEL-TYPE',
+        type=str,
+        default='dcnn',
+        choices=model_choices,
+        help=f'Model to use. One of {model_choices}')  # yapf: disable
 
     args = parser.parse_args()
     return args
@@ -55,20 +63,22 @@ if __name__ == '__main__':
     num_embeddings = len(train_iter.dataset.fields['text'].vocab)
     num_classes = len(train_iter.dataset.fields['label'].vocab)
 
-    # model = models.Model(num_embeddings, embedding_dim, num_classes)
-    max_length = max(len(x.text) for x in train_iter.data())
-    model = models.MLP(num_embeddings, embedding_dim, max_length, num_classes)
+    if args.model == 'dcnn':
+        model = models.Model(num_embeddings, embedding_dim, num_classes)
+        print('Running model DCNN')
+    elif args.model == 'mlp':
+        max_length = max(len(x.text) for x in train_iter.data())
+        model = models.MLP(num_embeddings, embedding_dim, max_length, num_classes)
+        print('Running model MLP')
     if torch.cuda.is_available():
         model = model.cuda()
-    criterion = torch.nn.CrossEntropyLoss()
 
+    criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adagrad(model.params(), lr=.1)
 
-    if not os.path.isdir('logs'):
-        os.mkdir('logs')
     log = logger.Logger(args.log)
 
-    # stats == [train_loss, train_acc, test_loss, test_acc]
+    # stats stores [train_loss, train_acc, test_loss, test_acc]
     stats = np.zeros(4, dtype='float64')
     update_period = 200
     with tqdm.tqdm(train_iter, total=len(train_iter) * num_epochs) as progress:

@@ -1,5 +1,5 @@
+import layers
 import torch
-
 
 class MLP(torch.nn.Module):
     def __init__(self, num_embeddings, embedding_dim, max_length, num_classes):
@@ -25,7 +25,6 @@ class MLP(torch.nn.Module):
         )
 
     def forward(self, x):
-        # import pdb; pdb.set_trace()
         b, n = x.size()
         pad = (0, (self.max_length - n) * self.embedding_dim)
         x = self.embedding(x)
