@@ -33,6 +33,9 @@ class MLP(torch.nn.Module):
 		x = self.fc2(x)
 		return x
 
+	def params(self):
+		return self.parameters()
+
 
 class Model(torch.nn.Module):
     def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
@@ -116,3 +119,8 @@ class Model(torch.nn.Module):
         b, k, d, s = x.size()
         x = x.permute(0, 2, 1, 3).contiguous().view(b, d * k, s)
         return x
+
+	def params(self):
+        weight_decays = {'embedding': 5e-5, 'conv1': 1.5e-5, 'conv2': 1.5e-6, 'fc': 5e-5}
+		return [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in self.named_parameters()]
+

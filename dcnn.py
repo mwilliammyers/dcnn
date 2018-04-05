@@ -46,8 +46,6 @@ if __name__ == '__main__':
     args = get_arguments()
     num_epochs = args.epochs
     batch_size = args.batch_size
-    # TODO: make configurable from CLI?
-    weight_decays = {'embedding': 5e-5, 'conv1': 1.5e-5, 'conv2': 1.5e-6, 'fc': 5e-5}
     embedding_dim = 60
     device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
     load_data = dataloader.twitter(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
@@ -55,7 +53,7 @@ if __name__ == '__main__':
     train_iter, val_iter, test_iter = load_data()
     val_iter.sort_key = test_iter.sort_key = lambda example: len(example.text)
     num_embeddings = len(train_iter.dataset.fields['text'].vocab)
-    num_classes = len(train_iter.dataset.fields['label'].vocab)
+    num_classes = len(train_isdter.dataset.fields['label'].vocab)
 
     # model = models.Model(num_embeddings, embedding_dim, num_classes)
     max_length = max(len(x.text) for x in train_iter.data())
@@ -64,8 +62,7 @@ if __name__ == '__main__':
         model = model.cuda()
     criterion = torch.nn.CrossEntropyLoss()
 
-    params = [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in model.named_parameters()]
-    optimizer = torch.optim.Adagrad(params, lr=.1)
+    optimizer = torch.optim.Adagrad(model.params(), lr=.1)
 
     if not os.path.isdir('logs'):
         os.mkdir('logs')
