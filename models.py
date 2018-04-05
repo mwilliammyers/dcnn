@@ -2,39 +2,42 @@ import torch
 
 
 class MLP(torch.nn.Module):
-	def __init__(self, num_embeddings, embedding_dim, max_length, num_classes):
-		super(MLP, self).__init__()
+    def __init__(self, num_embeddings, embedding_dim, max_length, num_classes):
+        super(MLP, self).__init__()
 
-		self.max_length = max_length
+        self.embedding_dim = embedding_dim
+        self.max_length = max_length
 
-		self.input_size = embedding_dim * max_length
-		self.hidden_size = 2 * self.input_size
-		self.output_size = num_classes
+        self.input_size = embedding_dim * max_length
+        self.hidden_size = 2 * self.input_size
+        self.output_size = num_classes
 
-		self.nonlin = torch.tanh
+        self.nonlin = torch.tanh
 
-		self.embedding = torch.nn.Embedding(num_embeddings, embedding_dim)
-		self.fc1 = torch.nn.Linear(
-			in_features=self.input_size,
-			out_features=self.hidden_size
-		)
-		self.fc2 = torch.nn.Linear(
-			in_features=self.hidden_size,
-			out_features=self.output_size
-		)
+        self.embedding = torch.nn.Embedding(num_embeddings, embedding_dim)
+        self.fc1 = torch.nn.Linear(
+            in_features=self.input_size,
+            out_features=self.hidden_size
+        )
+        self.fc2 = torch.nn.Linear(
+            in_features=self.hidden_size,
+            out_features=self.output_size
+        )
 
-	def forward(self, x):
-		pad = (0, self.max_length - len(x))
-		x = self.embedding(x)
-		x = x.view(x.size()[0], -1)
-		x = torch.nn.functional.pad(x, pad, mode='constant', value=0)
-		x = self.fc1(x)
-		x = self.nonlin(x)
-		x = self.fc2(x)
-		return x
+    def forward(self, x):
+        # import pdb; pdb.set_trace()
+        b, n = x.size()
+        pad = (0, (self.max_length - n) * self.embedding_dim)
+        x = self.embedding(x)
+        x = x.view(b, -1)
+        x = torch.nn.functional.pad(x, pad, mode='constant', value=0)
+        x = self.fc1(x)
+        x = self.nonlin(x)
+        x = self.fc2(x)
+        return x
 
-	def params(self):
-		return self.parameters()
+    def params(self):
+        return self.parameters()
 
 
 class Model(torch.nn.Module):
@@ -120,7 +123,7 @@ class Model(torch.nn.Module):
         x = x.permute(0, 2, 1, 3).contiguous().view(b, d * k, s)
         return x
 
-	def params(self):
+    def params(self):
         weight_decays = {'embedding': 5e-5, 'conv1': 1.5e-5, 'conv2': 1.5e-6, 'fc': 5e-5}
-		return [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in self.named_parameters()]
+        return [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in self.named_parameters()]
 

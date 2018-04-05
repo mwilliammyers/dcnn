@@ -53,7 +53,7 @@ if __name__ == '__main__':
     train_iter, val_iter, test_iter = load_data()
     val_iter.sort_key = test_iter.sort_key = lambda example: len(example.text)
     num_embeddings = len(train_iter.dataset.fields['text'].vocab)
-    num_classes = len(train_isdter.dataset.fields['label'].vocab)
+    num_classes = len(train_iter.dataset.fields['label'].vocab)
 
     # model = models.Model(num_embeddings, embedding_dim, num_classes)
     max_length = max(len(x.text) for x in train_iter.data())
