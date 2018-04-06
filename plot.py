@@ -17,6 +17,14 @@ fp = args.fp
 data = open(fp, 'rb').read()
 data = struct.unpack('f' * (len(data) // 4), data)
 data = np.array(data).reshape(-1, 4)
+t = np.linspace(1, data.shape[0] + 1, 4 * data.shape[0])
+
+try:
+	import seaborn as sns
+	sns.set()
+except ImportError:
+	pass
+	
 fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
 ax1.plot(data[:,0], color='b', label='train')
 ax1.plot(data[:,2], color='g', label='val')
@@ -34,7 +42,7 @@ ax2.hlines(
     linestyle='dotted')
 ax2.legend(loc='lower right')
 ax2.set_title('Accuracy')
-ax2.set_xlabel('Batches')
+ax2.set_xlabel('Iterations')
 ax2.set_ylabel('Accuracy')
 
 plt.show()
