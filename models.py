@@ -1,5 +1,6 @@
 import layers
 import torch
+import math
 
 class MLP(torch.nn.Module):
     def __init__(self, num_embeddings, embedding_dim, max_length, num_classes):
@@ -39,9 +40,9 @@ class MLP(torch.nn.Module):
         return self.parameters()
 
 
-class Model(torch.nn.Module):
+class DCNN(torch.nn.Module):
     def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
-        super(Model, self).__init__()
+        super(DCNN, self).__init__()
 
         self.num_filters = [6, 14]
         self.kernel_size = [7, 5]
@@ -62,6 +63,7 @@ class Model(torch.nn.Module):
             groups=self.rows[0])
         self.fold1 = layers.Fold(2, 2)
         self.dkmpool1 = layers.DynamicKMaxPool(1, self.num_layers, self.k_top)
+        self.bias1 = self.make_bias((self.num_filters[0] * self.rows[1], 1))
 
         self.conv2 = torch.nn.Conv1d(
             in_channels=self.num_filters[0] * self.rows[1],
@@ -71,12 +73,22 @@ class Model(torch.nn.Module):
             groups=self.rows[1])
         self.fold2 = layers.Fold(2, 2)
         self.kmaxpool = layers.KMaxPool(self.k_top)
+        self.bias2 = self.make_bias((self.num_filters[1] * self.rows[2], 1))
 
         self.dropout = torch.nn.Dropout()
 
         self.fc = torch.nn.Linear(
             in_features=self.rows[2] * self.num_filters[1] * self.k_top,
             out_features=self.num_classes)
+
+    def make_bias(self, size):
+        n = size[0]
+        for k in size[1:]:
+            n *= k
+        stdv = 1. / math.sqrt(n)
+        bias = torch.nn.Parameter(torch.Tensor(*size))
+        bias.data.uniform_(-stdv, stdv)
+        return bias
 
     def forward(self, x):
         # get the sentence embedding
@@ -88,6 +100,7 @@ class Model(torch.nn.Module):
         x = self.fold1(x)
         x = self._from_channel_view(x)
         x = self.dkmpool1(x)
+        x = x + self.bias1
         x = self.nonlin(x)
         # second conv-fold-pool block
         x = self.conv2(x)
@@ -95,6 +108,7 @@ class Model(torch.nn.Module):
         x = self.fold2(x)
         x = self._from_channel_view(x)
         x = self.kmaxpool(x)
+        x = x + self.bias2
         x = self.nonlin(x)
 
         x = self.dropout(x)
@@ -123,6 +137,20 @@ class Model(torch.nn.Module):
         return x
 
     def params(self):
-        weight_decays = {'embedding': 5e-5, 'conv1': 1.5e-5, 'conv2': 1.5e-6, 'fc': 5e-5}
+        weight_decays = {'embedding': 5e-5, 'conv1': 1.5e-5, 'bias1': 1.5e-5, 'conv2': 1.5e-6, 'bias2': 1.5e-6, 'fc': 5e-5}
         return [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in self.named_parameters()]
 
+
+class DCNNReLU(DCNN):
+    def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
+        super(DCNNReLU, self).__init__(num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4)
+
+        self.nonlin = torch.nn.ReLU()
+
+
+class DCNNLeakyReLU(DCNN):
+    def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
+        super(DCNNLeakyReLU, self).__init__(num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4)
+
+        self.nonlin = torch.nn.LeakyReLU()
+    

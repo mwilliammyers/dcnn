@@ -9,7 +9,7 @@ import os
 
 def get_arguments():
     import argparse
-    model_choices = ['dcnn','mlp']
+    model_choices = ['dcnn','dcnn-relu','dcnn-leakyrelu','mlp']
     parser = argparse.ArgumentParser('Dynamic CNN in PyTorch')
 
     parser.add_argument(
@@ -24,7 +24,7 @@ def get_arguments():
         dest='batch_size',
         metavar='BATCH-SIZE',
         type=int,
-        default=32,
+        default=16,
         help='Size of a mini batch')  # yapf: disable
     parser.add_argument(
         '--log',
@@ -65,6 +65,28 @@ def get_arguments():
 
     return parser.parse_args()
 
+def get_model(model_name):
+    if model_name == 'dcnn':
+        # create a dynamic cnn model
+        model = models.DCNN(num_embeddings, embedding_dim, num_classes)
+        print('Running model DCNN')
+    elif model_name == 'dcnn-relu':
+        # create a dynamic cnn model with ReLU activations
+        model = models.DCNNReLU(num_embeddings, embedding_dim, num_classes)
+        print('Running model DCNNReLU')
+    elif model_name == 'dcnn-leakyrelu':
+        # create a dynamic cnn model with ReLU activations
+        model = models.DCNNLeakyReLU(num_embeddings, embedding_dim, num_classes)
+        print('Running model DCNNLeakyReLU')
+    elif model_name == 'mlp':
+        # create an mlp model to compare against
+        max_length = max(len(x.text) for x in train_iter.data())
+        model = models.MLP(num_embeddings, embedding_dim, max_length, num_classes)
+        print('Running model MLP')
+    if torch.cuda.is_available():
+        model = model.cuda()
+    return model
+
 def calc_accuracy(outputs, targets):
     correct = (outputs.data.max(dim=1)[1] == targets.data)
     return torch.sum(correct) / targets.size()[0]
@@ -85,17 +107,7 @@ if __name__ == '__main__':
     num_embeddings = len(train_iter.dataset.fields['text'].vocab)
     num_classes = len(train_iter.dataset.fields['label'].vocab)
 
-    if args.model == 'dcnn':
-        # create a dynamic cnn model
-        model = models.Model(num_embeddings, embedding_dim, num_classes)
-        print('Running model DCNN')
-    elif args.model == 'mlp':
-        # create an mlp model to compare against
-        max_length = max(len(x.text) for x in train_iter.data())
-        model = models.MLP(num_embeddings, embedding_dim, max_length, num_classes)
-        print('Running model MLP')
-    if torch.cuda.is_available():
-        model = model.cuda()
+    model = get_model(args.model)
 
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adagrad(model.params(), lr=lr)
