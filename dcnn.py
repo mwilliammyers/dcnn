@@ -17,14 +17,14 @@ def get_arguments():
         dest='epochs',
         metavar='EPOCHS',
         type=int,
-        default=5,
+        default=15,
         help='Number of epochs to train for')  # yapf: disable
     parser.add_argument(
         '--batch-size',
         dest='batch_size',
         metavar='BATCH-SIZE',
         type=int,
-        default=4,
+        default=32,
         help='Size of a mini batch')  # yapf: disable
     parser.add_argument(
         '--log',
@@ -46,7 +46,7 @@ def get_arguments():
         dest='learning_rate',
         metavar='LEARNING-RATE',
         type=float,
-        default=0.1,
+        default=0.05,
         help='Learning rate')  # yapf: disable
     parser.add_argument(
         '--embed-dim',
@@ -106,7 +106,6 @@ if __name__ == '__main__':
     stats = np.zeros(4, dtype='float64')
     eval_period = args.eval_period
     with tqdm.tqdm(train_iter, total=len(train_iter) * num_epochs) as progress:
-        stats[:] = 0
         for i, batch in enumerate(train_iter):
             optimizer.zero_grad()
 
@@ -129,6 +128,6 @@ if __name__ == '__main__':
                 stats[2:] /= len(val_iter)
                 log.log(stats.astype('float32'))
                 progress.set_postfix(val_loss=stats[2], train_loss=stats[0])
-                train_loss = 0
+                stats[:] = 0
             if train_iter.epoch >= num_epochs:
                 break
