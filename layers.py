@@ -4,32 +4,41 @@ import math
 use_cuda = torch.cuda.is_available()
 
 
-def conv1d(inputs, weight, bias=None, stride=1, padding=0):
+def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
     """Applies a 1D convolution over an input signal composed of several input planes.
 
     Args:
         input: input tensor of shape (minibatch x in_channels x iW)
         weight: filters of shape (out_channels x in_channels x kW)
         bias: optional bias of shape (out_channels). Default: None
+        dilation: the spacing between kernel elements. Can be a single number or a one-element tuple (dW,). Default: 1
+        groups: split input into groups, in_channels should be divisible by the number of groups. Default: 1
     """
     inputs = np.pad(inputs, [(0, 0), (0, 0), (padding, padding)], mode='constant')
     minibatch, in_channels, input_width = inputs.shape
-    out_channels, in_channels_, weight_width = weight.shape
-    # assert in_channels == in_channels_
+    out_channels, in_channels_over_groups, weight_width = weight.shape
+
+    if in_channels % groups != 0:
+        raise ValueError('in_channels must be divisible by groups')
+    if out_channels % groups != 0:
+        raise ValueError('out_channels must be divisible by groups')
+    if dilation != 1:
+        raise NotImplementedError('dilation must be 1')
 
     if bias is None:
-        bias = np.zeros(out_channels)
+        bias = np.zeros(out_channels * groups)
     bias = np.expand_dims(bias, axis=0).T  # HACK?
 
     out_width = (input_width - weight_width) // stride + 1
 
     out = np.empty((minibatch, out_channels, out_width))
     for b in range(minibatch):
-        for l in range(out_width):
+        for w in range(out_width):
             for c in range(out_channels):
-                l_stride = l * stride
-                sub = inputs[b, :, l_stride:l_stride + weight_width]
-                out[b, c, l] = np.sum(sub * weight[c])
+                group_index = c // in_channels_over_groups
+                w_stride = w * stride
+                sub = inputs[b, group_index:group_index + in_channels_over_groups, w_stride:w_stride + weight_width]
+                out[b, group_index, w] = np.sum(sub * weight[group_index])
         out[b] += bias
     return out
 
@@ -157,16 +166,23 @@ if __name__ == '__main__':
     import numpy as np
 
     stride = 2
-    channels = 3
+    in_channels = 3
     out_channels = 3
-    padding = 1
+    padding = 0
+    groups = 2
 
-    inputs = torch.autograd.Variable(torch.randn((3, channels, 3)))
-    filters = torch.autograd.Variable(torch.randn((out_channels, channels, 3)))
-    bias = torch.autograd.Variable(torch.ones(out_channels))
+    inputs = torch.autograd.Variable(torch.randn((2, in_channels * groups, 3)))
+    filters = torch.autograd.Variable(torch.randn((out_channels * groups, in_channels, 3)))
+    bias = torch.autograd.Variable(torch.zeros(out_channels * groups))
 
-    result1 = torch.nn.functional.conv1d(inputs, filters, stride=stride, bias=bias, padding=padding)
+    result1 = torch.nn.functional.conv1d(inputs, filters, stride=stride, bias=bias, padding=padding, groups=groups)
     print('INPUTS', inputs, 'FILTERS', filters, 'TORCH RESULT', result1, sep='\n')
 
-    result2 = conv1d(inputs.data.numpy(), filters.data.numpy(), stride=stride, bias=bias.data.numpy(), padding=padding)
+    result2 = conv1d(
+        inputs.data.numpy(),
+        filters.data.numpy(),
+        stride=stride,
+        bias=bias.data.numpy(),
+        padding=padding,
+        groups=groups)
     print('RESULT', result2, result2.shape, sep='\n')
