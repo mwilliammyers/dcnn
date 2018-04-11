@@ -2,6 +2,7 @@ import layers
 import torch
 import math
 
+
 class MLP(torch.nn.Module):
     def __init__(self, num_embeddings, embedding_dim, max_length, num_classes):
         super(MLP, self).__init__()
@@ -16,14 +17,8 @@ class MLP(torch.nn.Module):
         self.nonlin = torch.tanh
 
         self.embedding = torch.nn.Embedding(num_embeddings, embedding_dim)
-        self.fc1 = torch.nn.Linear(
-            in_features=self.input_size,
-            out_features=self.hidden_size
-        )
-        self.fc2 = torch.nn.Linear(
-            in_features=self.hidden_size,
-            out_features=self.output_size
-        )
+        self.fc1 = torch.nn.Linear(in_features=self.input_size, out_features=self.hidden_size)
+        self.fc2 = torch.nn.Linear(in_features=self.hidden_size, out_features=self.output_size)
 
     def forward(self, x):
         b, n = x.size()
@@ -78,8 +73,7 @@ class DCNN(torch.nn.Module):
         self.dropout = torch.nn.Dropout()
 
         self.fc = torch.nn.Linear(
-            in_features=self.rows[2] * self.num_filters[1] * self.k_top,
-            out_features=self.num_classes)
+            in_features=self.rows[2] * self.num_filters[1] * self.k_top, out_features=self.num_classes)
 
     def make_bias(self, size):
         n = size[0]
@@ -137,7 +131,14 @@ class DCNN(torch.nn.Module):
         return x
 
     def params(self):
-        weight_decays = {'embedding': 5e-5, 'conv1': 1.5e-5, 'bias1': 1.5e-5, 'conv2': 1.5e-6, 'bias2': 1.5e-6, 'fc': 5e-5}
+        weight_decays = {
+            'embedding': 5e-5,
+            'conv1': 1.5e-5,
+            'bias1': 1.5e-5,
+            'conv2': 1.5e-6,
+            'bias2': 1.5e-6,
+            'fc': 5e-5
+        }
         return [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in self.named_parameters()]
 
 
@@ -153,4 +154,3 @@ class DCNNLeakyReLU(DCNN):
         super(DCNNLeakyReLU, self).__init__(num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4)
 
         self.nonlin = torch.nn.LeakyReLU()
-    

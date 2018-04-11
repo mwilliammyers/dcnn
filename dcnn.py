@@ -4,12 +4,11 @@ import models
 import logger
 import torch
 import tqdm
-import os
 
 
 def get_arguments():
     import argparse
-    model_choices = ['dcnn','dcnn-relu','dcnn-leakyrelu','mlp']
+    model_choices = ['dcnn', 'dcnn-relu', 'dcnn-leakyrelu', 'mlp']
     parser = argparse.ArgumentParser('Dynamic CNN in PyTorch')
 
     parser.add_argument(
@@ -65,6 +64,7 @@ def get_arguments():
 
     return parser.parse_args()
 
+
 def get_model(model_name):
     if model_name == 'dcnn':
         # create a dynamic cnn model
@@ -86,6 +86,7 @@ def get_model(model_name):
     if torch.cuda.is_available():
         model = model.cuda()
     return model
+
 
 def calc_accuracy(outputs, targets):
     correct = (outputs.data.max(dim=1)[1] == targets.data)
