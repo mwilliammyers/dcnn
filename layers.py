@@ -4,6 +4,35 @@ import math
 use_cuda = torch.cuda.is_available()
 
 
+def conv1d(inputs, weight, bias=None, stride=1):
+    """Applies a 1D convolution over an input signal composed of several input planes.
+
+    Args:
+        input: input tensor of shape (minibatch x in_channels x iW)
+        weight: filters of shape (out_channels x in_channels x kW)
+        bias: optional bias of shape (out_channels). Default: None
+    """
+    minibatch, in_channels, input_length = inputs.shape
+    # FIXME: make this function work for out_channels > 1
+    out_channels, in_channels_, weight_length = weight.shape
+    # assert in_channels == in_channels_
+
+    if bias is None:
+        bias = np.zeros(out_channels)
+
+    out_length = (input_length - weight_length) // stride + 1
+
+    out = np.empty((minibatch, out_channels, out_length))
+    for b in range(minibatch):
+        for c in range(out_channels):
+            for l in range(out_length):
+                c_stride = c * stride
+                l_stride = l * stride
+                sub = inputs[b, c_stride:c_stride + in_channels, l_stride:l_stride + weight_length]
+                out[b, c, l] = np.sum(sub * weight) + bias
+    return out
+
+
 def k_max_pool(x, k, axis=-1):
     '''Perform k-max pooling operation.
     '''
@@ -121,3 +150,21 @@ class DynamicKMaxPool(torch.nn.Module):
         k = max(self.k_top, kp)
 
         return k_max_pool(x, k)
+
+
+if __name__ == '__main__':
+    import numpy as np
+
+    stride = 1
+    channels = 3
+    out_channels = 1
+
+    inputs = torch.autograd.Variable(torch.randn((3, channels, 3)))
+    filters = torch.autograd.Variable(torch.randn((out_channels, channels, 3)))
+    bias = torch.autograd.Variable(torch.ones(out_channels))
+
+    result1 = torch.nn.functional.conv1d(inputs, filters, stride=stride, bias=bias)
+    print(inputs, filters, result1, sep='\n')
+
+    result2 = conv1d(inputs.data.numpy(), filters.data.numpy(), stride=stride, bias=bias.data.numpy())
+    print(result2, result2.shape)
