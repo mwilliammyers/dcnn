@@ -13,22 +13,22 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0):
         bias: optional bias of shape (out_channels). Default: None
     """
     inputs = np.pad(inputs, [(0, 0), (0, 0), (padding, padding)], mode='constant')
-    minibatch, in_channels, input_length = inputs.shape
-    out_channels, in_channels_, weight_length = weight.shape
+    minibatch, in_channels, input_width = inputs.shape
+    out_channels, in_channels_, weight_width = weight.shape
     # assert in_channels == in_channels_
 
     if bias is None:
         bias = np.zeros(out_channels)
     bias = np.expand_dims(bias, axis=0).T  # HACK?
 
-    out_length = (input_length - weight_length) // stride + 1
+    out_width = (input_width - weight_width) // stride + 1
 
-    out = np.empty((minibatch, out_channels, out_length))
+    out = np.empty((minibatch, out_channels, out_width))
     for b in range(minibatch):
-        for l in range(out_length):
+        for l in range(out_width):
             for c in range(out_channels):
                 l_stride = l * stride
-                sub = inputs[b, :, l_stride:l_stride + weight_length]
+                sub = inputs[b, :, l_stride:l_stride + weight_width]
                 out[b, c, l] = np.sum(sub * weight[c])
         out[b] += bias
     return out
