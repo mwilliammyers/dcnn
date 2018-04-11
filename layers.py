@@ -12,7 +12,7 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0):
         weight: filters of shape (out_channels x in_channels x kW)
         bias: optional bias of shape (out_channels). Default: None
     """
-    inputs = np.pad(inputs, padding, mode='constant')
+    inputs = np.pad(inputs, [(0, 0), (0, 0), (padding, padding)], mode='constant')
     minibatch, in_channels, input_length = inputs.shape
     # FIXME: make this function work for out_channels > 1
     out_channels, in_channels_, weight_length = weight.shape
@@ -160,11 +160,9 @@ if __name__ == '__main__':
     stride = 2
     channels = 3
     out_channels = 3
-    # padding = [(0, 0), (1, 1), (1, 1)]
-    # padding = [(0, 0), (0, 1), (1, 2)]
-    padding = 0
+    padding = 1
 
-    inputs = torch.autograd.Variable(torch.randn((1, channels, 3)))
+    inputs = torch.autograd.Variable(torch.randn((3, channels, 3)))
     filters = torch.autograd.Variable(torch.randn((out_channels, channels, 3)))
     bias = torch.autograd.Variable(torch.ones(out_channels))
 
