@@ -14,7 +14,6 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0):
     """
     inputs = np.pad(inputs, [(0, 0), (0, 0), (padding, padding)], mode='constant')
     minibatch, in_channels, input_length = inputs.shape
-    # FIXME: make this function work for out_channels > 1
     out_channels, in_channels_, weight_length = weight.shape
     # assert in_channels == in_channels_
 
