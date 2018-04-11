@@ -25,12 +25,11 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0):
 
     out = np.empty((minibatch, out_channels, out_length))
     for b in range(minibatch):
-        for c in range(out_channels):
-            for l in range(out_length):
-                c_stride = c * stride
+        for l in range(out_length):
+            for c in range(out_channels):
                 l_stride = l * stride
-                sub = inputs[b, c_stride:c_stride + in_channels, l_stride:l_stride + weight_length]
-                out[b, c, l] = np.sum(sub * weight) + bias
+                sub = inputs[b, :, l_stride:l_stride + weight_length]
+                out[b, c, l] = np.sum(sub * weight[c])
     return out
 
 
