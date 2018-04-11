@@ -4,7 +4,7 @@ import math
 use_cuda = torch.cuda.is_available()
 
 
-def conv1d(inputs, weight, bias=None, stride=1):
+def conv1d(inputs, weight, bias=None, stride=1, padding=0):
     """Applies a 1D convolution over an input signal composed of several input planes.
 
     Args:
@@ -12,6 +12,7 @@ def conv1d(inputs, weight, bias=None, stride=1):
         weight: filters of shape (out_channels x in_channels x kW)
         bias: optional bias of shape (out_channels). Default: None
     """
+    inputs = np.pad(inputs, padding, mode='constant')
     minibatch, in_channels, input_length = inputs.shape
     # FIXME: make this function work for out_channels > 1
     out_channels, in_channels_, weight_length = weight.shape
