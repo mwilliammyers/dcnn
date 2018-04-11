@@ -20,6 +20,7 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0):
 
     if bias is None:
         bias = np.zeros(out_channels)
+    bias = np.expand_dims(bias, axis=0).T  # HACK?
 
     out_length = (input_length - weight_length) // stride + 1
 
@@ -30,6 +31,7 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0):
                 l_stride = l * stride
                 sub = inputs[b, :, l_stride:l_stride + weight_length]
                 out[b, c, l] = np.sum(sub * weight[c])
+        out[b] += bias
     return out
 
 
