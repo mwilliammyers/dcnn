@@ -104,4 +104,4 @@ ENV/
 .vector_cache/
 
 # logs
-logs/*
+logs*/*
