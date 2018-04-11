@@ -157,16 +157,19 @@ class DynamicKMaxPool(torch.nn.Module):
 if __name__ == '__main__':
     import numpy as np
 
-    stride = 1
+    stride = 2
     channels = 3
-    out_channels = 1
+    out_channels = 3
+    # padding = [(0, 0), (1, 1), (1, 1)]
+    # padding = [(0, 0), (0, 1), (1, 2)]
+    padding = 0
 
-    inputs = torch.autograd.Variable(torch.randn((3, channels, 3)))
+    inputs = torch.autograd.Variable(torch.randn((1, channels, 3)))
     filters = torch.autograd.Variable(torch.randn((out_channels, channels, 3)))
     bias = torch.autograd.Variable(torch.ones(out_channels))
 
-    result1 = torch.nn.functional.conv1d(inputs, filters, stride=stride, bias=bias)
-    print(inputs, filters, result1, sep='\n')
+    result1 = torch.nn.functional.conv1d(inputs, filters, stride=stride, bias=bias, padding=padding)
+    print('INPUTS', inputs, 'FILTERS', filters, 'TORCH RESULT', result1, sep='\n')
 
-    result2 = conv1d(inputs.data.numpy(), filters.data.numpy(), stride=stride, bias=bias.data.numpy())
-    print(result2, result2.shape)
+    result2 = conv1d(inputs.data.numpy(), filters.data.numpy(), stride=stride, bias=bias.data.numpy(), padding=padding)
+    print('RESULT', result2, result2.shape, sep='\n')
