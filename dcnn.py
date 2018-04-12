@@ -26,7 +26,7 @@ def get_arguments():
         dest='batch_size',
         metavar='BATCH-SIZE',
         type=int,
-        default=16,
+        default=64,
         help='Size of a mini batch')  # yapf: disable
     parser.add_argument(
         '--log',
