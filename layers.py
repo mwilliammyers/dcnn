@@ -1,7 +1,24 @@
 import torch
 import math
+import numpy as np
+import scipy.ndimage.filters
 
 use_cuda = torch.cuda.is_available()
+
+
+def k_max_pool(x, k, axis=-1):
+    '''Perform k-max pooling operation.
+    '''
+    top, ind = x.topk(k, dim=axis, sorted=False)
+    b, d, s = top.size()
+    dim_map = torch.autograd.Variable(torch.arange(b * d), requires_grad=False)
+    if use_cuda:
+        dim_map = dim_map.cuda()
+    # Fanciness to get the global index into the `top` tensor for each value
+    # in the relative order they appeared in the input.
+    offset = dim_map.view(b, d, 1).long() * s + ind.sort()[1]
+    top = top.view(-1)[offset.view(-1)].view(b, d, -1)
+    return top
 
 
 def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
@@ -14,6 +31,13 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
         dilation: the spacing between kernel elements. Can be a single number or a one-element tuple (dW,). Default: 1
         groups: split input into groups, in_channels should be divisible by the number of groups. Default: 1
     """
+    try:
+        padding = padding[0]
+        dilation = dilation[0]
+        stride = stride[0]
+    except TypeError:
+        pass
+
     inputs = np.pad(inputs, [(0, 0), (0, 0), (padding, padding)], mode='constant')
     minibatch, in_channels, input_width = inputs.shape
     out_channels, in_channels_over_groups, weight_width = weight.shape
@@ -43,19 +67,38 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
     return out
 
 
-def k_max_pool(x, k, axis=-1):
-    '''Perform k-max pooling operation.
-    '''
-    top, ind = x.topk(k, dim=axis, sorted=False)
-    b, d, s = top.size()
-    dim_map = torch.autograd.Variable(torch.arange(b * d), requires_grad=False)
-    if use_cuda:
-        dim_map = dim_map.cuda()
-    # Fanciness to get the global index into the `top` tensor for each value
-    # in the relative order they appeared in the input.
-    offset = dim_map.view(b, d, 1).long() * s + ind.sort()[1]
-    top = top.view(-1)[offset.view(-1)].view(b, d, -1)
-    return top
+class Conv1dFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
+        ctx.save_for_backward(inputs, weight, bias)
+        output = conv1d(inputs.numpy(), weight.numpy(), bias, stride, padding, dilation, groups)
+        # if bias is not None:
+        #     output += bias.unsqueeze(0).expand_as(output)
+        return inputs.new(output)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        inputs, weight, bias = ctx.saved_tensors
+        grad_inputs = grad_weight = grad_bias = None
+
+        grad_output = grad_output.data
+
+        if ctx.needs_input_grad[0]:
+            grad_inputs = scipy.ndimage.filters.convolve1d(grad_output.numpy(), weight.numpy(), mode='full')
+        if ctx.needs_input_grad[1]:
+            grad_weight = scipy.ndimage.filters.convolve1d(inputs.numpy(), grad_output.numpy(), mode='valid')
+        if bias is not None and ctx.needs_input_grad[2]:
+            grad_bias = grad_output.sum(0).squeeze(0)
+
+        return (torch.autograd.Variable(grad_output.new(grad_inputs)),
+                torch.autograd.Variable(grad_output.new(grad_weight)),
+                torch.autograd.Variable(grad_output.new(grad_bias)))
+
+
+class Conv1d(torch.nn.Conv1d):
+    def forward(self, input):
+        return Conv1dFunction.apply(input, self.weight, self.bias, self.stride, self.padding, self.dilation,
+                                    self.groups)
 
 
 class Fold(torch.nn.Module):
@@ -163,8 +206,6 @@ class DynamicKMaxPool(torch.nn.Module):
 
 
 if __name__ == '__main__':
-    import numpy as np
-
     np.set_printoptions(precision=4, suppress=True, floatmode='fixed')
 
     stride = 1
