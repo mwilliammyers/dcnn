@@ -29,6 +29,8 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
         bias = np.zeros(out_channels)
 
     out_width = (input_width - weight_width) // stride + 1
+    # from mxnet
+    # out_width = (input_width + 2 * padding - dilation * (weight_width - 1) - 1) // stride + 1
 
     out = np.empty((minibatch, out_channels, out_width))
     for b in range(minibatch):
@@ -163,12 +165,12 @@ class DynamicKMaxPool(torch.nn.Module):
 if __name__ == '__main__':
     import numpy as np
 
-    stride = 2
     np.set_printoptions(precision=4, suppress=True, floatmode='fixed')
 
+    stride = 1
     in_channels = 3
     out_channels = 3
-    padding = 0
+    padding = 2  # FIXME: when padding is 1, groups is 2 and stride is 2
     groups = 2
 
     inputs = torch.autograd.Variable(torch.randn((2, in_channels * groups, 3)))
@@ -179,10 +181,10 @@ if __name__ == '__main__':
     print('INPUTS', inputs, 'FILTERS', filters, 'TORCH RESULT', result1, sep='\n')
 
     result2 = conv1d(
-        inputs.data.numpy(),
-        filters.data.numpy(),
+        inputs.clone().data.numpy(),
+        filters.clone().data.numpy(),
         stride=stride,
-        bias=bias.data.numpy(),
+        bias=bias.clone().data.numpy() if bias is not None else None,
         padding=padding,
         groups=groups)
     print('RESULT', result2, result2.shape, sep='\n')
