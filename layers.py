@@ -14,7 +14,8 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
         dilation: the spacing between kernel elements. Can be a single number or a one-element tuple (dW,). Default: 1
         groups: split input into groups, in_channels should be divisible by the number of groups. Default: 1
     """
-    inputs = np.pad(inputs, [(0, 0), (0, 0), (padding, padding)], mode='constant')
+    # inputs = np.pad(inputs, [(0, 0), (0, 0), (padding, padding)], mode='constant')
+    # inputs = torch.nn.functional.pad(inputs, (0, 0, 0, 0, padding, padding), mode='constant', value=0)
     minibatch, in_channels, input_width = inputs.shape
     out_channels, in_channels_over_groups, weight_width = weight.shape
 
@@ -26,20 +27,27 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
         raise NotImplementedError('dilation must be 1')
 
     if bias is None:
-        bias = np.zeros(out_channels)
+        bias = torch.zeros(out_channels)
 
     out_width = (input_width - weight_width) // stride + 1
     # from mxnet
     # out_width = (input_width + 2 * padding - dilation * (weight_width - 1) - 1) // stride + 1
 
-    out = np.empty((minibatch, out_channels, out_width))
+    out = torch.autograd.Variable(torch.zeros(minibatch, out_channels, out_width), requires_grad=True)
     for b in range(minibatch):
         for w in range(out_width):
             for c in range(in_channels_over_groups):
                 group_index = c // in_channels_over_groups
                 w_stride = w * stride
                 sub = inputs[b, group_index:group_index + in_channels_over_groups, w_stride:w_stride + weight_width]
-                out[b, c, w] = np.sum(sub * weight[c]) + bias[c]
+                # print('SUB', sub, sep='\n')
+                # print(b, group_index, w)
+                # new_out = out.data.copy()
+                out[b, c, w] = torch.sum(sub * weight[c]) + bias[c]
+                # out.data.copy(new_out.data)
+
+                # print(out[b, group_index, w])
+        # out[b] += bias
     return out
 
 
@@ -163,28 +171,19 @@ class DynamicKMaxPool(torch.nn.Module):
 
 
 if __name__ == '__main__':
-    import numpy as np
-
-    np.set_printoptions(precision=4, suppress=True, floatmode='fixed')
-
     stride = 1
     in_channels = 3
     out_channels = 3
-    padding = 2  # FIXME: when padding is 1, groups is 2 and stride is 2
+    padding = 0  # FIXME: when padding is 1, groups is 2 and stride is 2
     groups = 2
 
     inputs = torch.autograd.Variable(torch.randn((2, in_channels * groups, 3)))
     filters = torch.autograd.Variable(torch.randn((out_channels * groups, in_channels, 3)))
     bias = torch.autograd.Variable(torch.zeros(out_channels * groups))
+    # bias = None
 
     result1 = torch.nn.functional.conv1d(inputs, filters, stride=stride, bias=bias, padding=padding, groups=groups)
     print('INPUTS', inputs, 'FILTERS', filters, 'TORCH RESULT', result1, sep='\n')
 
-    result2 = conv1d(
-        inputs.clone().data.numpy(),
-        filters.clone().data.numpy(),
-        stride=stride,
-        bias=bias.clone().data.numpy() if bias is not None else None,
-        padding=padding,
-        groups=groups)
-    print('RESULT', result2, result2.shape, sep='\n')
+    result2 = conv1d(inputs, filters, stride=stride, bias=bias, padding=padding, groups=groups)
+    print('RESULT', result2, sep='\n')
