@@ -9,6 +9,8 @@ import tqdm
 def get_arguments():
     import argparse
     model_choices = ['dcnn', 'dcnn-relu', 'dcnn-leakyrelu', 'mlp']
+    optim_choices = ['adagrad', 'adadelta', 'adam']
+
     parser = argparse.ArgumentParser('Dynamic CNN in PyTorch')
 
     parser.add_argument(
@@ -61,6 +63,14 @@ def get_arguments():
         type=int,
         default=200,
         help='Number of training batches between validation evals')  # yapf: disable
+    parser.add_argument(
+        '--optim',
+        dest='optim',
+        metavar='OPTIMIZER-ALGORITHM',
+        default=optim_choices[0],
+        choices=optim_choices,
+        help=f'Optimization algorithm. One of {optim_choices}')
+
 
     return parser.parse_args()
 
@@ -87,6 +97,13 @@ def get_model(model_name):
         model = model.cuda()
     return model
 
+def get_optim(optim_name, parameters, lr):
+    if optim_name == 'adagrad':
+        return torch.optim.Adagrad(parameters, lr=lr)
+    if optim_name == 'adadelta':
+        return torch.optim.Adadelta(parameters)
+    elif optim_name == 'adam':
+        return torch.optim.Adam(parameters, lr=lr)
 
 def calc_accuracy(outputs, targets):
     correct = (outputs.data.max(dim=1)[1] == targets.data)
@@ -111,7 +128,7 @@ if __name__ == '__main__':
     model = get_model(args.model)
 
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adagrad(model.params(), lr=lr)
+    optimizer = get_optim(args.optim, model.params(), lr)
 
     log = logger.Logger(args.log)
 

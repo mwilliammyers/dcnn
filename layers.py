@@ -1,54 +1,9 @@
 import torch
 import math
+import numpy as np
+import scipy.ndimage.filters
 
 use_cuda = torch.cuda.is_available()
-
-
-def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
-    """Applies a 1D convolution over an input signal composed of several input planes.
-
-    Args:
-        input: input tensor of shape (minibatch x in_channels x iW)
-        weight: filters of shape (out_channels x in_channels x kW)
-        bias: optional bias of shape (out_channels). Default: None
-        dilation: the spacing between kernel elements. Can be a single number or a one-element tuple (dW,). Default: 1
-        groups: split input into groups, in_channels should be divisible by the number of groups. Default: 1
-    """
-    # inputs = np.pad(inputs, [(0, 0), (0, 0), (padding, padding)], mode='constant')
-    # inputs = torch.nn.functional.pad(inputs, (0, 0, 0, 0, padding, padding), mode='constant', value=0)
-    minibatch, in_channels, input_width = inputs.shape
-    out_channels, in_channels_over_groups, weight_width = weight.shape
-
-    if in_channels % groups != 0:
-        raise ValueError('in_channels must be divisible by groups')
-    if out_channels % groups != 0:
-        raise ValueError('out_channels must be divisible by groups')
-    if dilation != 1:
-        raise NotImplementedError('dilation must be 1')
-
-    if bias is None:
-        bias = torch.zeros(out_channels)
-
-    out_width = (input_width - weight_width) // stride + 1
-    # from mxnet
-    # out_width = (input_width + 2 * padding - dilation * (weight_width - 1) - 1) // stride + 1
-
-    out = torch.autograd.Variable(torch.zeros(minibatch, out_channels, out_width), requires_grad=True)
-    for b in range(minibatch):
-        for w in range(out_width):
-            for c in range(in_channels_over_groups):
-                group_index = c // in_channels_over_groups
-                w_stride = w * stride
-                sub = inputs[b, group_index:group_index + in_channels_over_groups, w_stride:w_stride + weight_width]
-                # print('SUB', sub, sep='\n')
-                # print(b, group_index, w)
-                # new_out = out.data.copy()
-                out[b, c, w] = torch.sum(sub * weight[c]) + bias[c]
-                # out.data.copy(new_out.data)
-
-                # print(out[b, group_index, w])
-        # out[b] += bias
-    return out
 
 
 def k_max_pool(x, k, axis=-1):
@@ -64,6 +19,88 @@ def k_max_pool(x, k, axis=-1):
     offset = dim_map.view(b, d, 1).long() * s + ind.sort()[1]
     top = top.view(-1)[offset.view(-1)].view(b, d, -1)
     return top
+
+
+def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
+    """Applies a 1D convolution over an input signal composed of several input planes.
+
+    Args:
+        input: input tensor of shape (minibatch x in_channels x iW)
+        weight: filters of shape (out_channels x in_channels x kW)
+        bias: optional bias of shape (out_channels). Default: None
+        dilation: the spacing between kernel elements. Can be a single number or a one-element tuple (dW,). Default: 1
+        groups: split input into groups, in_channels should be divisible by the number of groups. Default: 1
+    """
+    try:
+        padding = padding[0]
+        dilation = dilation[0]
+        stride = stride[0]
+    except TypeError:
+        pass
+
+    # inputs = np.pad(inputs, [(0, 0), (0, 0), (padding, padding)], mode='constant')
+    # inputs = torch.nn.functional.pad(inputs, (0, 0, 0, 0, padding, padding), mode='constant', value=0)
+    minibatch, in_channels, input_width = inputs.shape
+    out_channels, in_channels_over_groups, weight_width = weight.shape
+    out_channels_over_groups = out_channels // groups
+
+    if in_channels % groups != 0:
+        raise ValueError('in_channels must be divisible by groups')
+    if out_channels % groups != 0:
+        raise ValueError('out_channels must be divisible by groups')
+    if dilation != 1:
+        raise NotImplementedError('dilation must be 1')
+
+    if bias is None:
+        bias = torch.zeros(out_channels)
+
+    out_width = (input_width - weight_width) // stride + 1
+
+    out = torch.autograd.Variable(torch.zeros(minibatch, out_channels, out_width), requires_grad=True)
+    for b in range(minibatch):
+        for c in range(out_channels):
+            group_index = c // out_channels_over_groups * in_channels_over_groups
+            for w in range(out_width):
+                w_stride = w * stride
+                sub = inputs[b, group_index:group_index + in_channels_over_groups, w_stride:w_stride + weight_width]
+                temp = torch.autograd.Variable(torch.zeros_like(out.data), requires_grad=False)
+                temp[b, c, w] = torch.sum(sub * weight[c]) + bias[c]
+                out = out + temp
+    return out
+
+
+class Conv1dFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
+        ctx.save_for_backward(inputs, weight, bias)
+        output = conv1d(inputs.numpy(), weight.numpy(), bias, stride, padding, dilation, groups)
+        # if bias is not None:
+        #     output += bias.unsqueeze(0).expand_as(output)
+        return inputs.new(output)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        inputs, weight, bias = ctx.saved_tensors
+        grad_inputs = grad_weight = grad_bias = None
+
+        grad_output = grad_output.data
+
+        if ctx.needs_input_grad[0]:
+            grad_inputs = scipy.ndimage.filters.convolve1d(grad_output.numpy(), weight.numpy(), mode='full')
+        if ctx.needs_input_grad[1]:
+            grad_weight = scipy.ndimage.filters.convolve1d(inputs.numpy(), grad_output.numpy(), mode='valid')
+        if bias is not None and ctx.needs_input_grad[2]:
+            grad_bias = grad_output.sum(0).squeeze(0)
+
+        return (torch.autograd.Variable(grad_output.new(grad_inputs)),
+                torch.autograd.Variable(grad_output.new(grad_weight)),
+                torch.autograd.Variable(grad_output.new(grad_bias)))
+
+
+class Conv1d(torch.nn.Conv1d):
+    def forward(self, input):
+        return Conv1dFunction.apply(input, self.weight, self.bias, self.stride, self.padding, self.dilation,
+                                    self.groups)
 
 
 class Fold(torch.nn.Module):
@@ -171,19 +208,22 @@ class DynamicKMaxPool(torch.nn.Module):
 
 
 if __name__ == '__main__':
-    stride = 1
-    in_channels = 3
-    out_channels = 3
-    padding = 0  # FIXME: when padding is 1, groups is 2 and stride is 2
-    groups = 2
+    np.set_printoptions(precision=4, suppress=True, floatmode='fixed')
 
-    inputs = torch.autograd.Variable(torch.randn((2, in_channels * groups, 3)))
-    filters = torch.autograd.Variable(torch.randn((out_channels * groups, in_channels, 3)))
-    bias = torch.autograd.Variable(torch.zeros(out_channels * groups))
-    # bias = None
+    stride = 3
+    in_channels = 6
+    out_channels = 12
+    padding = 4 
+    groups = 3
+
+    inputs = torch.autograd.Variable(torch.randn((2, in_channels, 3)))
+    filters = torch.autograd.Variable(torch.randn((out_channels, in_channels//groups, 3)))
+    bias = torch.autograd.Variable(torch.zeros(out_channels))
 
     result1 = torch.nn.functional.conv1d(inputs, filters, stride=stride, bias=bias, padding=padding, groups=groups)
     print('INPUTS', inputs, 'FILTERS', filters, 'TORCH RESULT', result1, sep='\n')
 
     result2 = conv1d(inputs, filters, stride=stride, bias=bias, padding=padding, groups=groups)
     print('RESULT', result2, sep='\n')
+    #print('MATCH?', np.allclose(result1.data.numpy(), result2))
+    
