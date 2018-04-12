@@ -26,20 +26,18 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
         raise NotImplementedError('dilation must be 1')
 
     if bias is None:
-        bias = np.zeros(out_channels * groups)
-    bias = np.expand_dims(bias, axis=0).T  # HACK?
+        bias = np.zeros(out_channels)
 
     out_width = (input_width - weight_width) // stride + 1
 
     out = np.empty((minibatch, out_channels, out_width))
     for b in range(minibatch):
         for w in range(out_width):
-            for c in range(out_channels):
+            for c in range(in_channels_over_groups):
                 group_index = c // in_channels_over_groups
                 w_stride = w * stride
                 sub = inputs[b, group_index:group_index + in_channels_over_groups, w_stride:w_stride + weight_width]
-                out[b, group_index, w] = np.sum(sub * weight[group_index])
-        out[b] += bias
+                out[b, c, w] = np.sum(sub * weight[c]) + bias[c]
     return out
 
 
