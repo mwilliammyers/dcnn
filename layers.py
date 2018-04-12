@@ -41,6 +41,7 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
     inputs = np.pad(inputs, [(0, 0), (0, 0), (padding, padding)], mode='constant')
     minibatch, in_channels, input_width = inputs.shape
     out_channels, in_channels_over_groups, weight_width = weight.shape
+    out_channels_over_groups = out_channels // groups
 
     if in_channels % groups != 0:
         raise ValueError('in_channels must be divisible by groups')
@@ -53,14 +54,12 @@ def conv1d(inputs, weight, bias=None, stride=1, padding=0, dilation=1, groups=1)
         bias = np.zeros(out_channels)
 
     out_width = (input_width - weight_width) // stride + 1
-    # from mxnet
-    # out_width = (input_width + 2 * padding - dilation * (weight_width - 1) - 1) // stride + 1
 
     out = np.empty((minibatch, out_channels, out_width))
     for b in range(minibatch):
-        for w in range(out_width):
-            for c in range(in_channels_over_groups):
-                group_index = c // in_channels_over_groups
+        for c in range(out_channels):
+            group_index = c // out_channels_over_groups * in_channels_over_groups
+            for w in range(out_width):
                 w_stride = w * stride
                 sub = inputs[b, group_index:group_index + in_channels_over_groups, w_stride:w_stride + weight_width]
                 out[b, c, w] = np.sum(sub * weight[c]) + bias[c]
@@ -208,15 +207,15 @@ class DynamicKMaxPool(torch.nn.Module):
 if __name__ == '__main__':
     np.set_printoptions(precision=4, suppress=True, floatmode='fixed')
 
-    stride = 1
-    in_channels = 3
-    out_channels = 3
-    padding = 2  # FIXME: when padding is 1, groups is 2 and stride is 2
-    groups = 2
+    stride = 3
+    in_channels = 6
+    out_channels = 12
+    padding = 4 
+    groups = 3
 
-    inputs = torch.autograd.Variable(torch.randn((2, in_channels * groups, 3)))
-    filters = torch.autograd.Variable(torch.randn((out_channels * groups, in_channels, 3)))
-    bias = torch.autograd.Variable(torch.zeros(out_channels * groups))
+    inputs = torch.autograd.Variable(torch.randn((2, in_channels, 3)))
+    filters = torch.autograd.Variable(torch.randn((out_channels, in_channels//groups, 3)))
+    bias = torch.autograd.Variable(torch.zeros(out_channels))
 
     result1 = torch.nn.functional.conv1d(inputs, filters, stride=stride, bias=bias, padding=padding, groups=groups)
     print('INPUTS', inputs, 'FILTERS', filters, 'TORCH RESULT', result1, sep='\n')
@@ -229,3 +228,6 @@ if __name__ == '__main__':
         padding=padding,
         groups=groups)
     print('RESULT', result2, result2.shape, sep='\n')
+
+    print('MATCH?', np.allclose(result1.data.numpy(), result2))
+    
