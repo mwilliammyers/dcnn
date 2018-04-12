@@ -164,6 +164,8 @@ if __name__ == '__main__':
     import numpy as np
 
     stride = 2
+    np.set_printoptions(precision=4, suppress=True, floatmode='fixed')
+
     in_channels = 3
     out_channels = 3
     padding = 0
