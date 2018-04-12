@@ -28,11 +28,11 @@ def load(path, format, fields, tokenize=str.split, preprocessing=None, embedding
 
     dset = torchtext.data.TabularDataset(path, format, fields)
 
-    text.build_vocab(dset)
+    text.build_vocab(dset, min_freq=2)
     label.build_vocab(dset)
 
-    embed_vector = torch.rand(len(text.vocab), embedding_dim)
-    text.vocab.set_vectors(text.vocab.stoi, embed_vector, embedding_dim)
+    # embed_vector = torch.rand(len(text.vocab), embedding_dim)
+    # text.vocab.set_vectors(text.vocab.stoi, embed_vector, embedding_dim)
 
     train, test, val = dset.split([.6, .2, .2])
 

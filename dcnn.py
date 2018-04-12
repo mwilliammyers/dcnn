@@ -69,7 +69,7 @@ def get_arguments():
         metavar='OPTIMIZER-ALGORITHM',
         default=optim_choices[0],
         choices=optim_choices,
-        help=f'Optimization algorithm. One of {optim_choices}')
+        help=f'Optimization algorithm. One of {optim_choices}')  # yapf: disable
 
 
     return parser.parse_args()
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     val_iter.sort_key = test_iter.sort_key = lambda example: len(example.text)
     num_embeddings = len(train_iter.dataset.fields['text'].vocab)
     num_classes = len(train_iter.dataset.fields['label'].vocab)
-
+    
     model = get_model(args.model)
 
     criterion = torch.nn.CrossEntropyLoss()
