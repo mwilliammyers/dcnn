@@ -10,8 +10,9 @@ def get_arguments():
     import argparse
     model_choices = ['dcnn', 'dcnn-relu', 'dcnn-leakyrelu', 'mlp']
     optim_choices = ['adagrad', 'adadelta', 'adam']
+    dataset_choices = ['twitter', 'yelp']
 
-    parser = argparse.ArgumentParser('Dynamic CNN in PyTorch')
+    parser = argparse.ArgumentParser('Dynamic CNN in PyTorch', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
         '--num-epochs',
@@ -70,7 +71,13 @@ def get_arguments():
         default=optim_choices[0],
         choices=optim_choices,
         help=f'Optimization algorithm. One of {optim_choices}')  # yapf: disable
-
+    parser.add_argument(
+        '--dataset',
+        dest='dataset',
+        metavar='DATASET',
+        default=dataset_choices[0],
+        choices=dataset_choices,
+        help=f'Dataset. One of {dataset_choices}')  # yapf: disable
 
     return parser.parse_args()
 
@@ -97,6 +104,7 @@ def get_model(model_name):
         model = model.cuda()
     return model
 
+
 def get_optim(optim_name, parameters, lr):
     if optim_name == 'adagrad':
         return torch.optim.Adagrad(parameters, lr=lr)
@@ -104,6 +112,7 @@ def get_optim(optim_name, parameters, lr):
         return torch.optim.Adadelta(parameters)
     elif optim_name == 'adam':
         return torch.optim.Adam(parameters, lr=lr)
+
 
 def calc_accuracy(outputs, targets):
     correct = (outputs.data.max(dim=1)[1] == targets.data)
@@ -118,13 +127,16 @@ if __name__ == '__main__':
     embedding_dim = args.embedding_dim
 
     device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
-    load_data = dataloader.twitter(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
+    if args.dataset == 'twitter':
+        load_data = dataloader.twitter(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
+    elif args.dataset == 'yelp':
+        load_data = dataloader.yelp(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
 
     train_iter, val_iter, test_iter = load_data()
     val_iter.sort_key = test_iter.sort_key = lambda example: len(example.text)
     num_embeddings = len(train_iter.dataset.fields['text'].vocab)
     num_classes = len(train_iter.dataset.fields['label'].vocab)
-    
+
     model = get_model(args.model)
 
     criterion = torch.nn.CrossEntropyLoss()
