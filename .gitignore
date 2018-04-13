@@ -104,5 +104,5 @@ ENV/
 .vector_cache/
 
 # logs
-logs*/*
+# logs*/*
 data/yelp*
