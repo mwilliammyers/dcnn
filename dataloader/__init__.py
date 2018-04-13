@@ -47,12 +47,12 @@ def twitter(path='data/twitter_airlines.csv', **kwargs):
     return lambda: load(path, format='csv', fields=('text', 'airline_sentiment'), **kwargs)
 
 
-def yelp(path='/mnt/pccfs/not_backed_up/data/yelp/yelp_review.csv', **kwargs):
+def yelp(path='data/yelp_review.csv', **kwargs):
     kwargs.setdefault('tokenize', 'spacy')
     return lambda: load(path, format='csv', fields=('text', 'stars'), **kwargs)
 
 
-def stanford_sentiment_treebank(data_root='/mnt/pccfs/not_backed_up/data', batch_size=4, repeat=True):
+def stanford_sentiment_treebank(data_root='data', batch_size=4, repeat=True):
     """Load the stanford sentiment treebank dataset."""
     text = torchtext.data.Field()
     label = torchtext.data.Field(sequential=False)
