@@ -1,9 +1,10 @@
 import numpy as np
 import dataloader
 import models
-import logger
+import time
 import torch
 import tqdm
+from tensorboardX import SummaryWriter
 
 
 def get_arguments():
@@ -128,7 +129,7 @@ def calc_accuracy(outputs, targets):
 def compute_confusion(model, val_iter):
     print('Evaluating mistakes...')
     mistakes = {k: 0 for k in val_iter.dataset.fields['label'].vocab.itos}
-    confusion = np.zeros((3,3))
+    confusion = np.zeros((3, 3))
     for batch in val_iter:
         outputs = model(batch.text)
         loss = criterion(outputs, batch.label)
@@ -168,7 +169,10 @@ if __name__ == '__main__':
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = get_optim(args.optim, model.params(), lr)
 
-    log = logger.Logger(args.log)
+    log_file = f"{args.log}_{time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime())}"
+    writer = SummaryWriter(log_file)
+
+    writer.add_text('hyperparameters', str(args.__dict__))
 
     # `stats` has form [train_loss, train_acc, test_loss, test_acc]
     stats = np.zeros(4, dtype='float64')
@@ -194,7 +198,15 @@ if __name__ == '__main__':
                     stats[3] += calc_accuracy(outputs, batch.label)
                 stats[:2] /= eval_period
                 stats[2:] /= len(val_iter)
-                log.log(stats.astype('float32'))
+
+                writer.add_scalar('data/train_loss', stats[0], i)
+                writer.add_scalar('data/train_acc', stats[1], i)
+                writer.add_scalar('data/test_loss', stats[2], i)
+                writer.add_scalar('data/test_acc', stats[3], i)
+
+                for name, param in model.named_parameters():
+                    writer.add_histogram(name, param, i)
+
                 progress.set_postfix(val_loss=stats[2], train_loss=stats[0])
                 stats[:] = 0
             if train_iter.epoch >= num_epochs:
@@ -202,3 +214,7 @@ if __name__ == '__main__':
 
     if args.track_mistakes:
         confusion = compute_confusion(model, val_iter)
+
+    writer.scalar_dict['hyperparameters'] = args.__dict__
+    writer.export_scalars_to_json(f'{log_file}.json')
+    writer.close()
