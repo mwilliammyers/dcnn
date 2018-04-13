@@ -125,6 +125,26 @@ def calc_accuracy(outputs, targets):
     return torch.sum(correct) / targets.size()[0]
 
 
+def compute_confusion(model, val_iter):
+    print('Evaluating mistakes...')
+    mistakes = {k: 0 for k in val_iter.dataset.fields['label'].vocab.itos}
+    confusion = np.zeros((3,3))
+    for batch in val_iter:
+        outputs = model(batch.text)
+        loss = criterion(outputs, batch.label)
+        targets = batch.label
+        predictions = outputs.data.max(dim=1)[1]
+        correct = (predictions == targets.data)
+        correct = correct.cpu().numpy().astype('bool')
+        label = targets.data.cpu().numpy().tolist()
+        predictions = predictions.cpu().numpy().tolist()
+        for lab, pred in zip(label, predictions):
+            confusion[lab, pred] += 1
+    print('Confusion matrix:')
+    print(confusion)
+    return confusion
+
+
 if __name__ == '__main__':
     args = get_arguments()
     num_epochs = args.epochs
@@ -181,20 +201,4 @@ if __name__ == '__main__':
                 break
 
     if args.track_mistakes:
-        from collections import Counter
-        print('Evaluating mistakes...')
-        mistakes = {k: 0 for k in val_iter.dataset.fields['label'].vocab.itos}
-        for batch in val_iter:
-            # import pdb; pdb.set_trace()
-            outputs = model(batch.text)
-            loss = criterion(outputs, batch.label)
-            targets = batch.label
-            correct = (outputs.data.max(dim=1)[1] == targets.data)
-            correct = correct.cpu().numpy().astype('bool')
-            wrong = targets.data.cpu().numpy()[~correct]
-            counts = Counter(wrong)
-            for k, c in counts.items():
-                mistakes[val_iter.dataset.fields['label'].vocab.itos[k]] += c
-        print('Mistakes:')
-        for k, c in mistakes.items():
-            print(f'{k}: {c}')
+        confusion = compute_confusion(mode, val_iter)
