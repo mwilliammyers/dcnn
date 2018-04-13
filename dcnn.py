@@ -78,6 +78,12 @@ def get_arguments():
         default=dataset_choices[0],
         choices=dataset_choices,
         help=f'Dataset. One of {dataset_choices}')  # yapf: disable
+    parser.add_argument(
+        '--track-mistakes',
+        dest='track_mistakes',
+        action='store_true',
+        default=False,
+        help='Show counts of mis-predicted labels')  # yapf: disabel
 
     return parser.parse_args()
 
@@ -173,3 +179,22 @@ if __name__ == '__main__':
                 stats[:] = 0
             if train_iter.epoch >= num_epochs:
                 break
+
+    if args.track_mistakes:
+        from collections import Counter
+        print('Evaluating mistakes...')
+        mistakes = {k: 0 for k in val_iter.dataset.fields['label'].vocab.itos}
+        for batch in val_iter:
+            # import pdb; pdb.set_trace()
+            outputs = model(batch.text)
+            loss = criterion(outputs, batch.label)
+            targets = batch.label
+            correct = (outputs.data.max(dim=1)[1] == targets.data)
+            correct = correct.cpu().numpy().astype('bool')
+            wrong = targets.data.cpu().numpy()[~correct]
+            counts = Counter(wrong)
+            for k, c in counts.items():
+                mistakes[val_iter.dataset.fields['label'].vocab.itos[k]] += c
+        print('Mistakes:')
+        for k, c in mistakes.items():
+            print(f'{k}: {c}')
