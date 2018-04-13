@@ -201,4 +201,4 @@ if __name__ == '__main__':
                 break
 
     if args.track_mistakes:
-        confusion = compute_confusion(mode, val_iter)
+        confusion = compute_confusion(model, val_iter)
