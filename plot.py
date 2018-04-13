@@ -27,10 +27,11 @@ try:
     import seaborn as sns
     sns.set()
     sns.set_style('darkgrid', {'axes.facecolor': '.88'})
+    sns.set_context('paper')
 except ImportError:
     pass
 
-fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4,2.75))
 for k, d in data.items():
     d[:, [1, 3]] *= 100
 
@@ -40,14 +41,12 @@ for k, d in data.items():
 
     ax1.plot(d[:, 2], label=k + '-val')
     ax2.plot(d[:, 3], label=k + '-val')
-#   ax2.hlines(
-#       (d[:,1].max(), d[:,3].max()),
-#       0, len(d)-1,
-#       linestyle='dotted')
+
 ax1.legend()
-ax1.set_ylabel('Loss (cross entropy)')
+ax1.set_ylabel('Loss')
 ax2.legend(loc='lower right')
 ax2.set_xlabel('Iterations')
 ax2.set_ylabel('Accuracy')
+fig.tight_layout()
 
 plt.show()
