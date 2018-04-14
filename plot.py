@@ -57,4 +57,4 @@ ax2.set_xlabel('Iterations')
 ax2.set_ylabel('Accuracy')
 fig.tight_layout()
 
-plt.savefig(f'figures/{title}.png')
+plt.savefig(f"figures/{title}{'_val' if val_only else ''}.png")
