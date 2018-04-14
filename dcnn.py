@@ -175,7 +175,7 @@ if __name__ == '__main__':
 
     writer.add_text('hyperparameters', str(args.__dict__))
 
-    # `stats` has form [train_loss, train_acc, test_loss, test_acc]
+    # `stats` has form [train_loss, train_acc, validation_loss, validation_acc]
     stats = np.zeros(4, dtype='float64')
     desc = f'run {args.current_run}'
     with tqdm.tqdm(train_iter, total=len(train_iter) * args.num_epochs, position=args.current_run, desc=desc) as pbar:
@@ -202,8 +202,8 @@ if __name__ == '__main__':
 
                 writer.add_scalar('stats/train_loss', stats[0], i)
                 writer.add_scalar('stats/train_acc', stats[1], i)
-                writer.add_scalar('stats/test_loss', stats[2], i)
-                writer.add_scalar('stats/test_acc', stats[3], i)
+                writer.add_scalar('stats/validation_loss', stats[2], i)
+                writer.add_scalar('stats/validation_acc', stats[3], i)
 
                 for name, param in model.named_parameters():
                     writer.add_histogram(name, param, i)
@@ -217,7 +217,7 @@ if __name__ == '__main__':
         confusion = compute_confusion(model, val_iter)
 
     writer.scalar_dict['hyperparameters'] = args.__dict__
-    title = f"{args.log.split('.')[-1].split('_')[0]}_{args.model}_{args.dataset}_run{args.current_run + 1}"
+    title = f"{args.log.split('.')[-1].split('_')[0]}_{args.model}_{args.dataset}_run-{args.current_run}"
     writer.scalar_dict['title'] = title
     writer.export_scalars_to_json(f'{log_file}.json')
     writer.close()
