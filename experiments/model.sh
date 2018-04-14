@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 
 dataset="${1:-twitter}"
-models=(dcnn dcnn-relu dcnn-leakyrelu mlp)
+models=(dcnn mlp)
 
 for model in "${models[@]}"
 do
-	python3 dcnn.py --model $model --num-epochs 25 --batch-size 32 --dataset $dataset --log "logs/$dataset/model-$model" &
+	python3 dcnn.py --model $model --num-epochs 20 --batch-size 256 --dataset $dataset --log "logs/$dataset/model-$model"
 done
-
-wait
