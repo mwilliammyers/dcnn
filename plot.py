@@ -16,12 +16,16 @@ args = parser.parse_args()
 
 files = args.fp
 val_only = args.val_only
+title = "plot"
 data = {}
 for f in files:
     d = open(f, 'rb').read()
     d = struct.unpack('f' * (len(d) // 4), d)
     d = np.array(d).reshape(-1, 4)
-    data[f.split('/')[-1]] = d
+    key = f.split('/')
+    title = f"{key[1]}_{key[2].split('-')[0]}"
+    data[key[-1]] = d
+
 
 try:
     import seaborn as sns
@@ -31,7 +35,7 @@ try:
 except ImportError:
     pass
 
-fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4,2.75))
+fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 2.75))
 for k, d in data.items():
     d[:, [1, 3]] *= 100
 
@@ -49,4 +53,4 @@ ax2.set_xlabel('Iterations')
 ax2.set_ylabel('Accuracy')
 fig.tight_layout()
 
-plt.show()
+plt.savefig(f'figures/{title}.png')
