@@ -106,6 +106,6 @@ ENV/
 # logs
 # logs*/*
 runs/
-logs/**/*events*
-logs/**/plugins/
+*events*
+*plugins/
 data/yelp*
