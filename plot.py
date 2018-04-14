@@ -34,16 +34,6 @@ for k, v in data.items():
     for x in zip(*v):
         avgeraged_data[k].append(np.mean(x))
 
-# k = 'stats/train_loss'
-# print(k, data[k][0][0], data[k][1][0], data[k][2][0], data[k][3][0])
-# x = (data[k][0][0] + data[k][1][0] + data[k][2][0] + data[k][3][0]) / 4.
-# print(k, data[k][0][1], data[k][1][1], data[k][2][1], data[k][3][1])
-# y = (data[k][0][1] + data[k][1][1] + data[k][2][1] + data[k][3][1]) / 4.
-#
-# print(avgeraged_data['stats/train_loss'][0], x, avgeraged_data['stats/train_loss'][1], y)
-#
-# raise
-
 try:
     import seaborn as sns
     sns.set()
