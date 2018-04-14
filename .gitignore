@@ -110,3 +110,5 @@ runs/
 *plugins/
 data/yelp*
 figures/
+*.bak
+*.orig
