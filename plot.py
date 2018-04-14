@@ -22,6 +22,7 @@ title = "plot"
 data = defaultdict(list)
 for f in files:
     d = json.load(open(f))
+    title = d['title']
     for k, v in d.items():
         if k.startswith("stats"):
             data[k].extend([p[2] for p in v])
@@ -37,7 +38,6 @@ except ImportError:
 fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 2.75))
 for k, v in data.items():
     label = k.split('/')[-1].replace('_', ' ')
-    print(label)
     if val_only and 'train' in label:
         continue
     (ax1 if 'loss' in label else ax2).plot(v, label=label)
