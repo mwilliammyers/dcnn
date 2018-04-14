@@ -16,8 +16,15 @@ def get_arguments():
     parser = argparse.ArgumentParser('Dynamic CNN in PyTorch', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
+        '--current-run',
+        dest='current_run',
+        metavar='CURRENT_RUN',
+        type=int,
+        default=0,
+        help='The current run')  # yapf: disable
+    parser.add_argument(
         '--num-epochs',
-        dest='epochs',
+        dest='num_epochs',
         metavar='EPOCHS',
         type=int,
         default=15,
@@ -89,24 +96,20 @@ def get_arguments():
     return parser.parse_args()
 
 
-def get_model(model_name):
+def get_model(model_name, num_embeddings, embedding_dim, num_classes):
     if model_name == 'dcnn':
         # create a dynamic cnn model
         model = models.DCNN(num_embeddings, embedding_dim, num_classes)
-        print('Running model DCNN')
     elif model_name == 'dcnn-relu':
         # create a dynamic cnn model with ReLU activations
         model = models.DCNNReLU(num_embeddings, embedding_dim, num_classes)
-        print('Running model DCNNReLU')
     elif model_name == 'dcnn-leakyrelu':
         # create a dynamic cnn model with ReLU activations
         model = models.DCNNLeakyReLU(num_embeddings, embedding_dim, num_classes)
-        print('Running model DCNNLeakyReLU')
     elif model_name == 'mlp':
         # create an mlp model to compare against
         max_length = max(len(x.text) for x in train_iter.data())
         model = models.MLP(num_embeddings, embedding_dim, max_length, num_classes)
-        print('Running model MLP')
     if torch.cuda.is_available():
         model = model.cuda()
     return model
@@ -148,36 +151,34 @@ def compute_confusion(model, val_iter):
 
 if __name__ == '__main__':
     args = get_arguments()
-    num_epochs = args.epochs
-    batch_size = args.batch_size
-    lr = args.learning_rate
-    embedding_dim = args.embedding_dim
 
     device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
     if args.dataset == 'twitter':
-        load_data = dataloader.twitter(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
+        load_data = dataloader.twitter(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
     elif args.dataset == 'yelp':
-        load_data = dataloader.yelp(embedding_dim=embedding_dim, batch_size=batch_size, device=device)
+        load_data = dataloader.yelp(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
 
     train_iter, val_iter, test_iter = load_data()
     val_iter.sort_key = test_iter.sort_key = lambda example: len(example.text)
-    num_embeddings = len(train_iter.dataset.fields['text'].vocab)
-    num_classes = len(train_iter.dataset.fields['label'].vocab)
 
-    model = get_model(args.model)
+    model = get_model(
+        args.model,
+        num_embeddings=len(train_iter.dataset.fields['text'].vocab),
+        embedding_dim=args.embedding_dim,
+        num_classes=len(train_iter.dataset.fields['label'].vocab))
 
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = get_optim(args.optim, model.params(), lr)
+    optimizer = get_optim(args.optim, model.params(), args.learning_rate)
 
-    log_file = f"{args.log}_{time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime())}"
+    log_file = f"{args.log}_run-{args.current_run}_{time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime())}"
     writer = SummaryWriter(log_file)
 
     writer.add_text('hyperparameters', str(args.__dict__))
 
     # `stats` has form [train_loss, train_acc, test_loss, test_acc]
     stats = np.zeros(4, dtype='float64')
-    eval_period = args.eval_period
-    with tqdm.tqdm(train_iter, total=len(train_iter) * num_epochs) as progress:
+    desc = f'run {args.current_run}'
+    with tqdm.tqdm(train_iter, total=len(train_iter) * args.num_epochs, position=args.current_run, desc=desc) as pbar:
         for i, batch in enumerate(train_iter):
             optimizer.zero_grad()
 
@@ -189,32 +190,34 @@ if __name__ == '__main__':
             stats[0] += loss.data[0]
             stats[1] += calc_accuracy(outputs, batch.label)
 
-            progress.update()
-            if (i % eval_period) == (eval_period - 1):
+            pbar.update()
+            if (i % args.eval_period) == (args.eval_period - 1):
                 for batch in val_iter:
                     outputs = model(batch.text)
                     loss = criterion(outputs, batch.label)
                     stats[2] += loss.data[0]
                     stats[3] += calc_accuracy(outputs, batch.label)
-                stats[:2] /= eval_period
+                stats[:2] /= args.eval_period
                 stats[2:] /= len(val_iter)
 
-                writer.add_scalar('data/train_loss', stats[0], i)
-                writer.add_scalar('data/train_acc', stats[1], i)
-                writer.add_scalar('data/test_loss', stats[2], i)
-                writer.add_scalar('data/test_acc', stats[3], i)
+                writer.add_scalar('stats/train_loss', stats[0], i)
+                writer.add_scalar('stats/train_acc', stats[1], i)
+                writer.add_scalar('stats/test_loss', stats[2], i)
+                writer.add_scalar('stats/test_acc', stats[3], i)
 
                 for name, param in model.named_parameters():
                     writer.add_histogram(name, param, i)
 
-                progress.set_postfix(val_loss=stats[2], train_loss=stats[0])
+                pbar.set_postfix(val_loss=stats[2], train_loss=stats[0])
                 stats[:] = 0
-            if train_iter.epoch >= num_epochs:
+            if train_iter.epoch >= args.num_epochs:
                 break
 
     if args.track_mistakes:
         confusion = compute_confusion(model, val_iter)
 
     writer.scalar_dict['hyperparameters'] = args.__dict__
+    title = f"{args.log.split('.')[-1].split('_')[0]}_{args.model}_{args.dataset}_run{args.current_run + 1}"
+    writer.scalar_dict['title'] = title
     writer.export_scalars_to_json(f'{log_file}.json')
     writer.close()
