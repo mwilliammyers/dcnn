@@ -1,3 +1,5 @@
+import json
+from collections import defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
 import struct
@@ -17,15 +19,12 @@ args = parser.parse_args()
 files = args.fp
 val_only = args.val_only
 title = "plot"
-data = {}
+data = defaultdict(list)
 for f in files:
-    d = open(f, 'rb').read()
-    d = struct.unpack('f' * (len(d) // 4), d)
-    d = np.array(d).reshape(-1, 4)
-    key = f.split('/')
-    title = f"{key[1]}_{key[2].split('-')[0]}"
-    data[key[-1]] = d
-
+    d = json.load(open(f))
+    for k, v in d.items():
+        if k.startswith("stats"):
+            data[k].extend([p[2] for p in v])
 
 try:
     import seaborn as sns
@@ -36,16 +35,14 @@ except ImportError:
     pass
 
 fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(4, 2.75))
-for k, d in data.items():
-    d[:, [1, 3]] *= 100
+for k, v in data.items():
+    label = k.split('/')[-1].replace('_', ' ')
+    print(label)
+    if val_only and 'train' in label:
+        continue
+    (ax1 if 'loss' in label else ax2).plot(v, label=label)
 
-    if not val_only:
-        ax1.plot(d[:, 0], label=k + '-train')
-        ax2.plot(d[:, 1], label=k + '-train')
-
-    ax1.plot(d[:, 2], label=k + '-val')
-    ax2.plot(d[:, 3], label=k + '-val')
-
+# plt.title(title)
 ax1.legend()
 ax1.set_ylabel('Loss')
 ax2.legend(loc='lower right')
