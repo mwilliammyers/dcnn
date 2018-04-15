@@ -34,7 +34,7 @@ def load(path, format, fields, tokenize=str.split, preprocessing=None, embedding
     # embed_vector = torch.rand(len(text.vocab), embedding_dim)
     # text.vocab.set_vectors(text.vocab.stoi, embed_vector, embedding_dim)
 
-    train, test, val = dset.split([.6, .2, .2])
+    train, test, val = dset.split([.6, .01, .39])
 
     return torchtext.data.Iterator.splits((train, val, test), batch_size=batch_size, device=device)
 
