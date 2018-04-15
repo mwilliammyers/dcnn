@@ -217,7 +217,7 @@ if __name__ == '__main__':
         confusion = compute_confusion(model, val_iter)
 
     writer.scalar_dict['hyperparameters'] = args.__dict__
-    title = f"{args.log.split('.')[-1].split('_')[0]}_{args.model}_{args.dataset}_run-{args.current_run}"
+    title = f"{args.log.split('/')[-1].split('_')[0]}_{args.model}_{args.dataset}_run-{args.current_run}"
     writer.scalar_dict['title'] = title
     writer.export_scalars_to_json(f'{log_file}.json')
     writer.close()
