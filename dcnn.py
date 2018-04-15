@@ -208,7 +208,7 @@ if __name__ == '__main__':
                 for name, param in model.named_parameters():
                     writer.add_histogram(name, param, i)
 
-                pbar.set_postfix(val_loss=stats[2], train_loss=stats[0])
+                pbar.set_postfix(train_loss=stats[0], train_acc=stats[1], val_loss=stats[2], val_acc=stats[3])
                 stats[:] = 0
             if train_iter.epoch >= args.num_epochs:
                 break
