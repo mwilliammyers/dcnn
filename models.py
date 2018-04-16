@@ -142,6 +142,95 @@ class DCNN(torch.nn.Module):
         return [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in self.named_parameters()]
 
 
+class DeepDCNN(DCNN):
+    def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
+        super(DCNN, self).__init__()
+
+        self.num_filters = [10, 14, 18]
+        self.kernel_size = [7, 5, 5]
+        # self.rows = [embedding_dim, embedding_dim // 2, embedding_dim // 4]
+        self.rows = [embedding_dim // (2**x) for x in range(len(self.num_filters + 1))]
+
+        self.num_layers = num_layers
+        self.k_top = k_top
+        self.num_classes = num_classes
+
+        self.nonlin = torch.tanh
+        self.fold = layers.Fold(2, 2)
+
+        self.embedding = torch.nn.Embedding(num_embeddings, embedding_dim)
+        self.conv1 = torch.nn.Conv1d(
+            in_channels=self.rows[0],
+            out_channels=self.num_filters[0] * self.rows[0],
+            kernel_size=self.kernel_size[0],
+            padding=self.kernel_size[0] - 1,
+            groups=self.rows[0])
+        self.dkmpool1 = layers.DynamicKMaxPool(1, self.num_layers, self.k_top)
+
+        self.conv2 = torch.nn.Conv1d(
+            in_channels=self.num_filters[0] * self.rows[1],
+            out_channels=self.num_filters[1] * self.rows[1],
+            kernel_size=self.kernel_size[1],
+            padding=self.kernel_size[1] - 1,
+            groups=self.rows[1])
+        self.dkmpool2 = layers.DynamicKMaxPool(2, self.num_layers, self.k_top)
+
+        self.conv3 = torch.nn.Conv1d(
+            in_channels=self.num_filters[1] * self.rows[1],
+            out_channels=self.num_filters[2] * self.rows[1],
+            kernel_size=self.kernel_size[2],
+            padding=self.kernel_size[2] - 1,
+            groups=self.rows[2])
+        self.kmaxpool = layers.KMaxPool(self.k_top)
+
+        self.dropout = torch.nn.Dropout()
+
+        self.fc = torch.nn.Linear(
+            in_features=self.rows[2] * self.num_filters[1] * self.k_top, out_features=self.num_classes)
+
+    def forward(self, x):
+        # get the sentence embedding
+        x = self.embedding(x)
+        x = x.permute(0, 2, 1)
+        # first conv-fold-pool block
+        x = self.conv1(x)
+        x = self._to_channel_view(x, self.num_filters[0])
+        x = self.fold(x)
+        x = self._from_channel_view(x)
+        x = self.dkmpool1(x)
+        x = self.nonlin(x)
+        # second conv-fold-pool block
+        x = self.conv2(x)
+        x = self._to_channel_view(x, self.num_filters[1])
+        x = self.fold(x)
+        x = self._from_channel_view(x)
+        x = self.dkmpool2(x)
+        x = self.nonlin(x)
+        # third conv-fold-pool block
+        x = self.conv3(x)
+        x = self._to_channel_view(x, self.num_filters[2])
+        x = self.fold(x)
+        x = self._from_channel_view(x)
+        x = self.kmaxpool(x)
+        x = self.nonlin(x)
+
+        x = self.dropout(x)
+        x = x.view(x.size()[0], -1)
+        x = self.fc(x)
+        # returns un-normalized log-probabilities over the classes
+        return x
+
+    def params(self):
+        weight_decays = {
+            'embedding': 5e-5,
+            'conv1': 1.5e-5,
+            'conv2': 1.5e-6,
+            'conv3': 1.5e-6,
+            'fc': 5e-5
+        }
+        return [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in self.named_parameters()]
+
+
 class DCNNReLU(DCNN):
     def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
         super(DCNNReLU, self).__init__(num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4)

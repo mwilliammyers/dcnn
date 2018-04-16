@@ -9,7 +9,7 @@ from tensorboardX import SummaryWriter
 
 def get_arguments():
     import argparse
-    model_choices = ['dcnn', 'dcnn-relu', 'dcnn-leakyrelu', 'dcnn-custom', 'mlp']
+    model_choices = ['dcnn', 'dcnn-relu', 'dcnn-leakyrelu', 'dcnn-custom', 'deep-dcnn', 'mlp']
     optim_choices = ['adagrad', 'adadelta', 'adam']
     dataset_choices = ['twitter', 'twitter-large', 'yelp']
 
@@ -107,6 +107,8 @@ def get_model(model_name, num_embeddings, embedding_dim, num_classes):
         model = models.DCNNLeakyReLU(num_embeddings, embedding_dim, num_classes)
     elif model_name == 'dcnn-custom':
         model = models.CustomDCNN(num_embeddings, embedding_dim, num_classes)
+    elif model_name == 'deep-dcnn':
+        model = models.DeepDCNN(num_embeddings, embedding_dim, num_classes)
     elif model_name == 'mlp':
         # create an mlp model to compare against
         max_length = max(len(x.text) for x in train_iter.data())
