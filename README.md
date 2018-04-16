@@ -2,8 +2,8 @@
 A PyTorch implementation of the Dynamic CNN, from the paper [A Convolutional Neural Network for Modeling Sentences](https://arxiv.org/abs/1404.2188) by Kalchbrenner et al.
 
 ## requirements
-python>=3.6
-[nvidia-docker](https://github.com/NVIDIA/nvidia-docker) for optional Docker support.
+- python>=3.6
+- [nvidia-docker](https://github.com/NVIDIA/nvidia-docker) for optional Docker support.
 
 ## usage
 
