@@ -157,7 +157,7 @@ if __name__ == '__main__':
     if args.dataset == 'twitter':
         load_data = dataloader.twitter(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
     elif args.dataset == 'twitter-large':
-        load_data = dataloader.twitter(embedding_dim=args.embedding_dim, path='data/training.1600000.processed.noemoticon.csv', fields=('text', 'label'), batch_size=args.batch_size, device=device)
+        load_data = dataloader.twitter(embedding_dim=args.embedding_dim, path='data/twitter.training.csv', fields=('text', 'label'), batch_size=args.batch_size, device=device)
     elif args.dataset == 'yelp':
         load_data = dataloader.yelp(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
 
