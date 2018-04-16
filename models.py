@@ -35,17 +35,50 @@ class MLP(torch.nn.Module):
         return self.parameters()
 
 
-class DCNN(torch.nn.Module):
+class _DCNNBase(torch.nn.Module):
     def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
-        super(DCNN, self).__init__()
-
-        self.num_filters = [6, 14]
-        self.kernel_size = [7, 5]
-        self.rows = [embedding_dim, embedding_dim // 2, embedding_dim // 4]
+        super(_DCNNBase, self).__init__()
 
         self.num_layers = num_layers
         self.k_top = k_top
         self.num_classes = num_classes
+
+    def make_bias(self, size):
+        n = size[0]
+        for k in size[1:]:
+            n *= k
+        stdv = 1. / math.sqrt(n)
+        bias = torch.nn.Parameter(torch.Tensor(*size))
+        bias.data.uniform_(-stdv, stdv)
+        return bias
+
+    def _to_channel_view(self, x, channels):
+        # Get a 4D (batch, channels, embed, length) view of the 3D
+        # (batch, embed*channels, length) Tensor. Note that axis 1 of the input
+        # has the form [row1-filter1, row1-filter2, ..., rowd-filterk] where d
+        # is the embedding length and k is the number of conv filters. We want
+        # each channel to represent all the input rows, so we need to collate
+        # appropriately
+        (b, d, s), k = x.size(), channels
+        x = x.view(b, d // k, k, s).permute(0, 2, 1, 3)
+        return x
+
+    def _from_channel_view(self, x):
+        # Get a 3D (batch, embed*channels, length) view of the 4D
+        # (batch, channels, embed, length) Tensor. See self._to_channel_view
+        # for more info.
+        b, k, d, s = x.size()
+        x = x.permute(0, 2, 1, 3).contiguous().view(b, d * k, s)
+        return x
+
+
+class DCNN(_DCNNBase):
+    def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
+        super(DCNN, self).__init__(num_embeddings, embedding_dim, num_classes, num_layers, k_top)
+
+        self.num_filters = [6, 14]
+        self.kernel_size = [7, 5]
+        self.rows = [embedding_dim, embedding_dim // 2, embedding_dim // 4]
 
         self.nonlin = torch.tanh
 
@@ -75,15 +108,6 @@ class DCNN(torch.nn.Module):
         self.fc = torch.nn.Linear(
             in_features=self.rows[2] * self.num_filters[1] * self.k_top, out_features=self.num_classes)
 
-    def make_bias(self, size):
-        n = size[0]
-        for k in size[1:]:
-            n *= k
-        stdv = 1. / math.sqrt(n)
-        bias = torch.nn.Parameter(torch.Tensor(*size))
-        bias.data.uniform_(-stdv, stdv)
-        return bias
-
     def forward(self, x):
         # get the sentence embedding
         x = self.embedding(x)
@@ -111,25 +135,6 @@ class DCNN(torch.nn.Module):
         # returns un-normalized log-probabilities over the classes
         return x
 
-    def _to_channel_view(self, x, channels):
-        # Get a 4D (batch, channels, embed, length) view of the 3D
-        # (batch, embed*channels, length) Tensor. Note that axis 1 of the input
-        # has the form [row1-filter1, row1-filter2, ..., rowd-filterk] where d
-        # is the embedding length and k is the number of conv filters. We want
-        # each channel to represent all the input rows, so we need to collate
-        # appropriately
-        (b, d, s), k = x.size(), channels
-        x = x.view(b, d // k, k, s).permute(0, 2, 1, 3)
-        return x
-
-    def _from_channel_view(self, x):
-        # Get a 3D (batch, embed*channels, length) view of the 4D
-        # (batch, channels, embed, length) Tensor. See self._to_channel_view
-        # for more info.
-        b, k, d, s = x.size()
-        x = x.permute(0, 2, 1, 3).contiguous().view(b, d * k, s)
-        return x
-
     def params(self):
         weight_decays = {
             'embedding': 5e-5,
@@ -142,18 +147,14 @@ class DCNN(torch.nn.Module):
         return [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in self.named_parameters()]
 
 
-class DeepDCNN(DCNN):
+class DeepDCNN(_DCNNBase):
     def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
-        super(DCNN, self).__init__()
+        super(DeepDCNN, self).__init__(num_embeddings, embedding_dim, num_classes, num_layers, k_top)
 
         self.num_filters = [10, 14, 18]
         self.kernel_size = [7, 5, 5]
         # self.rows = [embedding_dim, embedding_dim // 2, embedding_dim // 4]
-        self.rows = [embedding_dim // (2**x) for x in range(len(self.num_filters + 1))]
-
-        self.num_layers = num_layers
-        self.k_top = k_top
-        self.num_classes = num_classes
+        self.rows = [embedding_dim // (2**x) for x in range(len(self.num_filters) + 1)]
 
         self.nonlin = torch.tanh
         self.fold = layers.Fold(2, 2)
