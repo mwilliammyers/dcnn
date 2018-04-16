@@ -154,3 +154,23 @@ class DCNNLeakyReLU(DCNN):
         super(DCNNLeakyReLU, self).__init__(num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4)
 
         self.nonlin = torch.nn.LeakyReLU()
+
+
+class CustomDCNN(DCNN):
+    def __init__(self, num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4):
+        super(CustomDCNN, self).__init__(num_embeddings, embedding_dim, num_classes, num_layers=2, k_top=4)
+
+        self.conv1 = layers.Conv1d(
+            in_channels=self.rows[0],
+            out_channels=self.num_filters[0] * self.rows[0],
+            kernel_size=self.kernel_size[0],
+            padding=self.kernel_size[0] - 1,
+            groups=self.rows[0])
+
+        self.conv2 = layers.Conv1d(
+            in_channels=self.num_filters[0] * self.rows[1],
+            out_channels=self.num_filters[1] * self.rows[1],
+            kernel_size=self.kernel_size[1],
+            padding=self.kernel_size[1] - 1,
+            groups=self.rows[1])
+

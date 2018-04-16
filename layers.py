@@ -1,7 +1,6 @@
 import torch
 import math
 import numpy as np
-import scipy.ndimage.filters
 
 use_cuda = torch.cuda.is_available()
 
@@ -83,10 +82,11 @@ class Conv1dFunction(torch.autograd.Function):
         grad_output = grad_output.data
 
         if ctx.needs_input_grad[0]:
-            print('WEIGHT', weight.numpy())
-            grad_input = scipy.signal.convolve1d(grad_output.numpy(), weight.numpy(), mode='full')
+            print(weight.numpy().transpose())
+            grad_input = conv1d(grad_output.numpy(), weight.numpy().transpose())
         if ctx.needs_input_grad[1]:
-            grad_weight = scipy.signal.convolve1d(input.numpy(), grad_output.numpy(), mode='valid')
+            print(input.numpy().transpose())
+            grad_weight = conv1d(input.numpy().transpose(), grad_output.numpy())
         if bias is not None and ctx.needs_input_grad[2]:
             grad_bias = grad_output.sum(0).squeeze(0)
 
@@ -228,7 +228,7 @@ if __name__ == '__main__':
         bias=bias.clone().data.numpy() if bias is not None else None,
         padding=padding,
         groups=groups)
-    print('RESULT', result2, result2.shape, sep='\n')
+    print('RESULT', result2, type(result2), result2.shape, sep='\n')
 
     print('MATCH?', np.allclose(result1.data.numpy(), result2))
 

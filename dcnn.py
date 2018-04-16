@@ -9,7 +9,7 @@ from tensorboardX import SummaryWriter
 
 def get_arguments():
     import argparse
-    model_choices = ['dcnn', 'dcnn-relu', 'dcnn-leakyrelu', 'mlp']
+    model_choices = ['dcnn', 'dcnn-relu', 'dcnn-leakyrelu', 'dcnn-custom', 'mlp']
     optim_choices = ['adagrad', 'adadelta', 'adam']
     dataset_choices = ['twitter', 'yelp']
 
@@ -91,8 +91,7 @@ def get_arguments():
         dest='track_mistakes',
         action='store_true',
         default=False,
-        help='Show counts of mis-predicted labels')  # yapf: disabel
-
+        help='Show counts of mis-predicted labels')  # yapf: disable
     return parser.parse_args()
 
 
@@ -106,6 +105,8 @@ def get_model(model_name, num_embeddings, embedding_dim, num_classes):
     elif model_name == 'dcnn-leakyrelu':
         # create a dynamic cnn model with ReLU activations
         model = models.DCNNLeakyReLU(num_embeddings, embedding_dim, num_classes)
+    elif model_name == 'dcnn-custom':
+        model = models.CustomDCNN(num_embeddings, embedding_dim, num_classes)
     elif model_name == 'mlp':
         # create an mlp model to compare against
         max_length = max(len(x.text) for x in train_iter.data())
