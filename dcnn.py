@@ -11,7 +11,7 @@ def get_arguments():
     import argparse
     model_choices = ['dcnn', 'dcnn-relu', 'dcnn-leakyrelu', 'dcnn-custom', 'mlp']
     optim_choices = ['adagrad', 'adadelta', 'adam']
-    dataset_choices = ['twitter', 'yelp']
+    dataset_choices = ['twitter', 'twitter-large', 'yelp']
 
     parser = argparse.ArgumentParser('Dynamic CNN in PyTorch', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -156,6 +156,8 @@ if __name__ == '__main__':
     device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
     if args.dataset == 'twitter':
         load_data = dataloader.twitter(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
+    elif args.dataset == 'twitter-large':
+        load_data = dataloader.twitter(embedding_dim=args.embedding_dim, path='data/training.1600000.processed.noemoticon.csv', fields=('text', 'label'), batch_size=args.batch_size, device=device)
     elif args.dataset == 'yelp':
         load_data = dataloader.yelp(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
 

@@ -112,3 +112,4 @@ data/yelp*
 figures/
 *.bak
 *.orig
+data/*.csv

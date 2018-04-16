@@ -3,7 +3,7 @@ import torchtext.data
 import torchtext.datasets
 
 
-def load(path, format, fields, tokenize=str.split, preprocessing=None, embedding_dim=60, batch_size=4, device=None):
+def load(path, format, fields, tokenize=str.split, preprocessing=None, embedding_dim=60, batch_size=4, device=None, skip_header=False):
     """Load a tabular dataset.
 
     Arguments:
@@ -39,12 +39,12 @@ def load(path, format, fields, tokenize=str.split, preprocessing=None, embedding
     return torchtext.data.Iterator.splits((train, val, test), batch_size=batch_size, device=device)
 
 
-def twitter(path='data/twitter_airlines.csv', **kwargs):
+def twitter(path='data/twitter_us_airline_sentiment.csv', fields=('text', 'airline_sentiment'), **kwargs):
     import nltk
     import dataloader.process_tweets as pt
     kwargs.setdefault('preprocessing', pt.preprocess())
     kwargs.setdefault('tokenize', nltk.tokenize.TweetTokenizer().tokenize)
-    return lambda: load(path, format='csv', fields=('text', 'airline_sentiment'), **kwargs)
+    return lambda: load(path, format='csv', fields=fields, **kwargs)
 
 
 def yelp(path='data/yelp_review.csv', **kwargs):
