@@ -177,8 +177,8 @@ class DeepDCNN(_DCNNBase):
         self.dkmpool2 = layers.DynamicKMaxPool(2, self.num_layers, self.k_top)
 
         self.conv3 = torch.nn.Conv1d(
-            in_channels=self.num_filters[1] * self.rows[1],
-            out_channels=self.num_filters[2] * self.rows[1],
+            in_channels=self.num_filters[1] * self.rows[2],
+            out_channels=self.num_filters[2] * self.rows[2],
             kernel_size=self.kernel_size[2],
             padding=self.kernel_size[2] - 1,
             groups=self.rows[2])
@@ -187,7 +187,7 @@ class DeepDCNN(_DCNNBase):
         self.dropout = torch.nn.Dropout()
 
         self.fc = torch.nn.Linear(
-            in_features=self.rows[2] * self.num_filters[1] * self.k_top, out_features=self.num_classes)
+            in_features=self.rows[-1] * self.num_filters[-1] * self.k_top, out_features=self.num_classes)
 
     def forward(self, x):
         # get the sentence embedding
