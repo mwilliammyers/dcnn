@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 dataset="${1:-twitter}"
-model=dcnn
+model="${2:-dcnn}"
 num_runs=3
 optim=adagrad
 
