@@ -23,7 +23,7 @@ def get_arguments():
         dest='current_run',
         metavar='CURRENT_RUN',
         type=int,
-        default=0,
+        default=1,
         help='The current run')  # yapf: disable
     parser.add_argument(
         '-n',
