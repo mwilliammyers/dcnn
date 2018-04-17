@@ -182,6 +182,14 @@ class DeepDCNN(_DCNNBase):
             kernel_size=self.kernel_size[2],
             padding=self.kernel_size[2] - 1,
             groups=self.rows[2])
+        self.dkmpool3 = layers.DynamicKMaxPool(3, self.num_layers, self.k_top)
+
+        self.conv4 = torch.nn.Conv1d(
+            in_channels=self.num_filters[2] * self.rows[3],
+            out_channels=self.num_filters[3] * self.rows[3],
+            kernel_size=self.kernel_size[3],
+            padding=self.kernel_size[3] - 1,
+            groups=self.rows[3])
         self.kmaxpool = layers.KMaxPool(self.k_top)
 
         self.dropout = torch.nn.Dropout()
@@ -212,6 +220,13 @@ class DeepDCNN(_DCNNBase):
         x = self._to_channel_view(x, self.num_filters[2])
         x = self.fold(x)
         x = self._from_channel_view(x)
+        x = self.dkmpool3(x)
+        x = self.nonlin(x)
+        # fourth conv-fold-pool block
+        x = self.conv4(x)
+        x = self._to_channel_view(x, self.num_filters[3])
+        x = self.fold(x)
+        x = self._from_channel_view(x)
         x = self.kmaxpool(x)
         x = self.nonlin(x)
 
@@ -226,9 +241,10 @@ class DeepDCNN(_DCNNBase):
             'embedding': 5e-5,
             'conv1': 1.5e-5,
             'conv2': 1.5e-6,
-            'conv3': 1.5e-6,
+            'conv3': 1.5e-7,
+            'conv4': 1.5e-8,
             'fc': 5e-5
-        }
+        }  # yapf: disable
         return [{'params': v, 'weight_decay': weight_decays[k.split('.')[0]]} for k, v in self.named_parameters()]
 
 
@@ -263,4 +279,3 @@ class CustomDCNN(DCNN):
             kernel_size=self.kernel_size[1],
             padding=self.kernel_size[1] - 1,
             groups=self.rows[1])
-
