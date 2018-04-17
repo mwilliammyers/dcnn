@@ -17,6 +17,7 @@ def get_arguments():
     parser = argparse.ArgumentParser('Dynamic CNN in PyTorch', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
+        '-c',
         '--current-run',
         dest='current_run',
         metavar='CURRENT_RUN',
@@ -24,6 +25,7 @@ def get_arguments():
         default=0,
         help='The current run')  # yapf: disable
     parser.add_argument(
+        '-n',
         '--num-epochs',
         dest='num_epochs',
         metavar='EPOCHS',
@@ -31,6 +33,7 @@ def get_arguments():
         default=15,
         help='Number of epochs to train for')  # yapf: disable
     parser.add_argument(
+        '-b',
         '--batch-size',
         dest='batch_size',
         metavar='BATCH-SIZE',
@@ -38,6 +41,7 @@ def get_arguments():
         default=64,
         help='Size of a mini batch')  # yapf: disable
     parser.add_argument(
+        '-k',
         '--kernel-sizes',
         dest='kernel_sizes',
         metavar='KERNEL-SIZE',
@@ -46,6 +50,7 @@ def get_arguments():
         default=[7, 5],
         help='Size of the kernels per layer; formatted as a space delimited list')  # yapf: disable
     parser.add_argument(
+        '-f',
         '--num-filters',
         dest='num_filters',
         metavar='NUM-FILTER',
@@ -54,6 +59,7 @@ def get_arguments():
         default=[6, 14],
         help='The number of filters at each layer; formatted as a space delimited list')  # yapf: disable
     parser.add_argument(
+        '-l',
         '--log',
         dest='log',
         metavar='LOG-FILE',
@@ -61,6 +67,7 @@ def get_arguments():
         default='logs/stats',
         help='Path to output log file')  # yapf: disable
     parser.add_argument(
+        '-m',
         '--model',
         dest='model',
         metavar='MODEL-TYPE',
@@ -69,6 +76,7 @@ def get_arguments():
         choices=model_choices,
         help=f'Model to use. One of {model_choices}')  # yapf: disable
     parser.add_argument(
+        '-r',
         '--lr',
         dest='learning_rate',
         metavar='LEARNING-RATE',
@@ -76,6 +84,7 @@ def get_arguments():
         default=0.05,
         help='Learning rate')  # yapf: disable
     parser.add_argument(
+        '-e',
         '--embed-dim',
         dest='embedding_dim',
         metavar='EMBED-DIMENSION',
@@ -83,6 +92,7 @@ def get_arguments():
         default=60,
         help='Dimension of the word embeddings')  # yapf: disable
     parser.add_argument(
+        '-p',
         '--eval-period',
         dest='eval_period',
         metavar='NUM-BATCHES',
@@ -90,6 +100,7 @@ def get_arguments():
         default=200,
         help='Number of training batches between validation evals')  # yapf: disable
     parser.add_argument(
+        '-a',
         '--non-linearity',
         dest='non_linearity',
         metavar='FUNCTION',
@@ -97,6 +108,7 @@ def get_arguments():
         choices=non_linearity_choices,
         help=f'Non linearity function. One of {non_linearity_choices}')  # yapf: disable
     parser.add_argument(
+        '-o',
         '--optim',
         dest='optim',
         metavar='OPTIMIZER-ALGORITHM',
@@ -104,6 +116,7 @@ def get_arguments():
         choices=optim_choices,
         help=f'Optimization algorithm. One of {optim_choices}')  # yapf: disable
     parser.add_argument(
+        '-d',
         '--dataset',
         dest='dataset',
         metavar='DATASET',
@@ -111,6 +124,7 @@ def get_arguments():
         choices=dataset_choices,
         help=f'Dataset. One of {dataset_choices}')  # yapf: disable
     parser.add_argument(
+        '-t',
         '--track-mistakes',
         dest='track_mistakes',
         action='store_true',
