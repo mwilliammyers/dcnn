@@ -119,6 +119,25 @@ def get_arguments():
     return parser.parse_args()
 
 
+def get_data_iters(args):
+    device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
+    if args.dataset == 'twitter':
+        load_data = dataloader.twitter(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
+    elif args.dataset == 'twitter-large':
+        load_data = dataloader.twitter(
+            embedding_dim=args.embedding_dim,
+            path='data/twitter.training.csv',
+            fields=('text', 'label'),
+            batch_size=args.batch_size,
+            device=device)
+    elif args.dataset == 'yelp':
+        load_data = dataloader.yelp(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
+
+    train_iter, val_iter, test_iter = load_data()
+    val_iter.sort_key = test_iter.sort_key = lambda example: len(example.text)
+    return train_iter, val_iter, test_iter
+
+
 def get_model(args, num_embeddings, num_classes):
     non_linearities = {'tanh': torch.tanh, 'relu': torch.nn.ReLU(), 'leaky-relu': torch.nn.LeakyReLU()}
     if args.model == 'dcnn':
@@ -174,21 +193,7 @@ def compute_confusion(model, val_iter):
 if __name__ == '__main__':
     args = get_arguments()
 
-    device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
-    if args.dataset == 'twitter':
-        load_data = dataloader.twitter(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
-    elif args.dataset == 'twitter-large':
-        load_data = dataloader.twitter(
-            embedding_dim=args.embedding_dim,
-            path='data/twitter.training.csv',
-            fields=('text', 'label'),
-            batch_size=args.batch_size,
-            device=device)
-    elif args.dataset == 'yelp':
-        load_data = dataloader.yelp(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
-
-    train_iter, val_iter, test_iter = load_data()
-    val_iter.sort_key = test_iter.sort_key = lambda example: len(example.text)
+    train_iter, val_iter, test_iter = get_data_iters(args)
 
     model = get_model(
         args,
