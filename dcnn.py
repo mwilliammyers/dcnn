@@ -9,6 +9,7 @@ from tensorboardX import SummaryWriter
 
 def get_arguments():
     import argparse
+
     model_choices = ['dcnn', 'mlp']
     non_linearity_choices = ['tanh', 'relu', 'leaky-relu']
     optim_choices = ['adagrad', 'adadelta', 'adam']

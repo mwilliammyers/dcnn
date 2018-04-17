@@ -3,7 +3,15 @@ import torchtext.data
 import torchtext.datasets
 
 
-def load(path, format, fields, tokenize=str.split, preprocessing=None, embedding_dim=60, batch_size=4, device=None, skip_header=False):
+def load(path,
+         format,
+         fields,
+         tokenize=str.split,
+         preprocessing=None,
+         embedding_dim=60,
+         batch_size=4,
+         device=None,
+         skip_header=False):
     """Load a tabular dataset.
 
     Arguments:
