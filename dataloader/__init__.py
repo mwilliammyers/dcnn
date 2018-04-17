@@ -58,26 +58,3 @@ def twitter(path='data/twitter_us_airline_sentiment.csv', fields=('text', 'airli
 def yelp(path='data/yelp_review.csv', **kwargs):
     kwargs.setdefault('tokenize', 'spacy')
     return lambda: load(path, format='csv', fields=('text', 'stars'), **kwargs)
-
-
-def stanford_sentiment_treebank(data_root='data', batch_size=4, repeat=True):
-    """Load the stanford sentiment treebank dataset."""
-    text = torchtext.data.Field()
-    label = torchtext.data.Field(sequential=False)
-
-    sst_root = data_root + '/stanford_sentiment_treebank'
-    train, val, test = torchtext.datasets.SST.splits(
-        text,
-        label,
-        root=sst_root,
-        fine_grained=True,
-        train_subtrees=True,
-        filter_pred=lambda ex: ex.label != 'neutral')
-
-    # FIXME: do not use fasttext vectors
-    f = torchtext.vocab.FastText(cache=data_root + '/fasttext')
-    text.build_vocab(train, vectors=f)
-    text.vocab.extend(f)
-    label.build_vocab(train)
-
-    return torchtext.datasets.SST.iters(batch_size=batch_size, root=sst_root, repeat=repeat)
