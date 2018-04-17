@@ -41,7 +41,7 @@ class DCNN(torch.nn.Module):
                  embedding_dim,
                  num_classes,
                  kernel_sizes,
-                 num_filters=None,
+                 num_filters,
                  k_top=4,
                  non_linearity=torch.tanh,
                  conv1d=torch.nn.Conv1d):
@@ -53,8 +53,7 @@ class DCNN(torch.nn.Module):
 
         self.kernel_sizes = kernel_sizes
         self.num_filters = num_filters
-        if self.num_filters is None:
-            self.num_filters = [10 + 4 * i for i in range(len(self.kernel_sizes))]
+
         self.rows = [embedding_dim // (2**x) for x in range(len(self.num_filters) + 1)]
         self.num_layers = len(self.kernel_sizes)
 
