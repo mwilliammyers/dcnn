@@ -13,7 +13,7 @@ optim=adagrad
 [[ $dataset =~ twitter.* ]] && lr=.03 || lr=.02
 # our results seem to indicate 80 is also good for twitter; paper uses 60
 [[ $dataset =~ twitter.* ]] && embed_dim=80 || embed_dim=180
-[[ $dataset =~ twitter.* ]] && eval_period=300 || eval_period=400
+[[ $dataset =~ twitter.* ]] && eval_period=200 || eval_period=400
 
 for i in $(seq 1 $num_runs)
 do

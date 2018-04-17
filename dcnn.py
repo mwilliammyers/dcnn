@@ -30,7 +30,7 @@ def get_arguments():
         dest='num_epochs',
         metavar='EPOCHS',
         type=int,
-        default=15,
+        default=8,
         help='Number of epochs to train for')  # yapf: disable
     parser.add_argument(
         '-b',
@@ -38,7 +38,7 @@ def get_arguments():
         dest='batch_size',
         metavar='BATCH-SIZE',
         type=int,
-        default=64,
+        default=16,
         help='Size of a mini batch')  # yapf: disable
     parser.add_argument(
         '-k',
@@ -81,7 +81,7 @@ def get_arguments():
         dest='learning_rate',
         metavar='LEARNING-RATE',
         type=float,
-        default=0.05,
+        default=0.03,
         help='Learning rate')  # yapf: disable
     parser.add_argument(
         '-e',
@@ -89,7 +89,7 @@ def get_arguments():
         dest='embedding_dim',
         metavar='EMBED-DIMENSION',
         type=int,
-        default=60,
+        default=80,
         help='Dimension of the word embeddings')  # yapf: disable
     parser.add_argument(
         '-p',
