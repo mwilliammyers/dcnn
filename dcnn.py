@@ -5,12 +5,12 @@ import time
 import torch
 import tqdm
 from tensorboardX import SummaryWriter
-import layers
 
 
 def get_arguments():
     import argparse
-    model_choices = ['dcnn', 'dcnn-relu', 'dcnn-leakyrelu', 'dcnn-custom', 'dcnn-deep', 'mlp']
+    model_choices = ['dcnn', 'mlp']
+    non_linearity_choices = ['tanh', 'relu', 'leaky-relu']
     optim_choices = ['adagrad', 'adadelta', 'adam']
     dataset_choices = ['twitter', 'twitter-large', 'yelp']
 
@@ -37,6 +37,22 @@ def get_arguments():
         type=int,
         default=64,
         help='Size of a mini batch')  # yapf: disable
+    parser.add_argument(
+        '--kernel-sizes',
+        dest='kernel_sizes',
+        metavar='KERNEL-SIZE',
+        type=int,
+        nargs='*',
+        default=[7, 5],
+        help='Size of the kernels per layer; formatted as a space delimited list')  # yapf: disable
+    parser.add_argument(
+        '--num-filters',
+        dest='num_filters',
+        metavar='NUM-FILTER',
+        type=int,
+        nargs='*',
+        default=[6, 14],
+        help='The number of filters at each layer; formatted as a space delimited list')  # yapf: disable
     parser.add_argument(
         '--log',
         dest='log',
@@ -74,6 +90,13 @@ def get_arguments():
         default=200,
         help='Number of training batches between validation evals')  # yapf: disable
     parser.add_argument(
+        '--non-linearity',
+        dest='non_linearity',
+        metavar='FUNCTION',
+        default=non_linearity_choices[0],
+        choices=non_linearity_choices,
+        help=f'Non linearity function. One of {non_linearity_choices}')  # yapf: disable
+    parser.add_argument(
         '--optim',
         dest='optim',
         metavar='OPTIMIZER-ALGORITHM',
@@ -96,32 +119,31 @@ def get_arguments():
     return parser.parse_args()
 
 
-def get_model(model_name, num_embeddings, embedding_dim, num_classes):
-    if model_name == 'dcnn':
-        model = models.DCNN(num_embeddings, embedding_dim, num_classes, kernel_sizes=[7, 5], num_filters=[6, 14])
-    elif model_name == 'dcnn-relu':
-        model = models.DCNN(num_embeddings, embedding_dim, num_classes, non_linearity=torch.nn.ReLU())
-    elif model_name == 'dcnn-leakyrelu':
-        model = models.DCNN(num_embeddings, embedding_dim, num_classes, non_linearity=torch.nn.LeakyReLU())
-    elif model_name == 'dcnn-custom':
-        model = models.DCNN(num_embeddings, embedding_dim, num_classes, conv1d=layers.Conv1d)
-    elif model_name == 'dcnn-deep':
-        model = models.DCNN(num_embeddings, embedding_dim, num_classes, kernel_sizes=[7, 5, 5])
-    elif model_name == 'mlp':
+def get_model(args, num_embeddings, num_classes):
+    non_linearities = {'tanh': torch.tanh, 'relu': torch.nn.ReLU(), 'leaky-relu': torch.nn.LeakyReLU()}
+    if args.model == 'dcnn':
+        model = models.DCNN(
+            num_embeddings,
+            args.embedding_dim,
+            num_classes,
+            kernel_sizes=args.kernel_sizes,
+            num_filters=args.num_filters,
+            non_linearity=non_linearities[args.non_linearity])
+    elif args.model == 'mlp':
         max_length = max(len(x.text) for x in train_iter.data())
-        model = models.MLP(num_embeddings, embedding_dim, max_length, num_classes)
+        model = models.MLP(num_embeddings, args.embedding_dim, max_length, num_classes)
     if torch.cuda.is_available():
         model = model.cuda()
     return model
 
 
-def get_optim(optim_name, parameters, lr):
-    if optim_name == 'adagrad':
-        return torch.optim.Adagrad(parameters, lr=lr)
-    if optim_name == 'adadelta':
+def get_optim(args, parameters):
+    if args.optim == 'adagrad':
+        return torch.optim.Adagrad(parameters, lr=args.learning_rate)
+    if args.optim == 'adadelta':
         return torch.optim.Adadelta(parameters)
-    elif optim_name == 'adam':
-        return torch.optim.Adam(parameters, lr=lr)
+    elif args.optim == 'adam':
+        return torch.optim.Adam(parameters, lr=args.learning_rate)
 
 
 def calc_accuracy(outputs, targets):
@@ -169,13 +191,12 @@ if __name__ == '__main__':
     val_iter.sort_key = test_iter.sort_key = lambda example: len(example.text)
 
     model = get_model(
-        args.model,
+        args,
         num_embeddings=len(train_iter.dataset.fields['text'].vocab),
-        embedding_dim=args.embedding_dim,
         num_classes=len(train_iter.dataset.fields['label'].vocab))
 
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = get_optim(args.optim, model.params(), args.learning_rate)
+    optimizer = get_optim(args, model.params())
 
     log_file = f"{args.log}_run-{args.current_run}_{time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime())}"
     writer = SummaryWriter(log_file)
