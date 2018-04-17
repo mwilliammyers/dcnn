@@ -1,7 +1,8 @@
+import time
+import timeit
 import numpy as np
 import dataloader
 import models
-import time
 import torch
 import tqdm
 from tensorboardX import SummaryWriter
@@ -135,6 +136,7 @@ def get_arguments():
 
 
 def get_data_iters(args):
+    start_time = timeit.default_timer()
     device = None if torch.cuda.is_available() else -1  # None == GPU, -1 == CPU
     if args.dataset == 'twitter':
         load_data = dataloader.twitter(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
@@ -150,6 +152,7 @@ def get_data_iters(args):
 
     train_iter, val_iter, test_iter = load_data()
     val_iter.sort_key = test_iter.sort_key = lambda example: len(example.text)
+    print('loaded data in:', timeit.default_timer() - start_time)
     return train_iter, val_iter, test_iter
 
 
