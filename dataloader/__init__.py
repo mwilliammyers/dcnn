@@ -1,4 +1,3 @@
-import torch
 import torchtext.data
 import torchtext.datasets
 

@@ -1,6 +1,5 @@
 import layers
 import torch
-import math
 
 
 class MLP(torch.nn.Module):
