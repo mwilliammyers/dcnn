@@ -5,6 +5,7 @@ import time
 import torch
 import tqdm
 from tensorboardX import SummaryWriter
+import layers
 
 
 def get_arguments():
@@ -97,20 +98,16 @@ def get_arguments():
 
 def get_model(model_name, num_embeddings, embedding_dim, num_classes):
     if model_name == 'dcnn':
-        # create a dynamic cnn model
-        model = models.DCNN(num_embeddings, embedding_dim, num_classes)
+        model = models.DCNN(num_embeddings, embedding_dim, num_classes, kernel_sizes=[7, 5], num_filters=[6, 14])
     elif model_name == 'dcnn-relu':
-        # create a dynamic cnn model with ReLU activations
-        model = models.DCNNReLU(num_embeddings, embedding_dim, num_classes)
+        model = models.DCNN(num_embeddings, embedding_dim, num_classes, non_linearity=torch.nn.ReLU())
     elif model_name == 'dcnn-leakyrelu':
-        # create a dynamic cnn model with ReLU activations
-        model = models.DCNNLeakyReLU(num_embeddings, embedding_dim, num_classes)
+        model = models.DCNN(num_embeddings, embedding_dim, num_classes, non_linearity=torch.nn.LeakyReLU())
     elif model_name == 'dcnn-custom':
-        model = models.CustomDCNN(num_embeddings, embedding_dim, num_classes)
+        model = models.DCNN(num_embeddings, embedding_dim, num_classes, conv1d=layers.Conv1d)
     elif model_name == 'dcnn-deep':
-        model = models.DeepDCNN(num_embeddings, embedding_dim, num_classes)
+        model = models.DCNN(num_embeddings, embedding_dim, num_classes, kernel_sizes=[7, 5, 5])
     elif model_name == 'mlp':
-        # create an mlp model to compare against
         max_length = max(len(x.text) for x in train_iter.data())
         model = models.MLP(num_embeddings, embedding_dim, max_length, num_classes)
     if torch.cuda.is_available():
@@ -159,7 +156,12 @@ if __name__ == '__main__':
     if args.dataset == 'twitter':
         load_data = dataloader.twitter(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
     elif args.dataset == 'twitter-large':
-        load_data = dataloader.twitter(embedding_dim=args.embedding_dim, path='data/twitter.training.csv', fields=('text', 'label'), batch_size=args.batch_size, device=device)
+        load_data = dataloader.twitter(
+            embedding_dim=args.embedding_dim,
+            path='data/twitter.training.csv',
+            fields=('text', 'label'),
+            batch_size=args.batch_size,
+            device=device)
     elif args.dataset == 'yelp':
         load_data = dataloader.yelp(embedding_dim=args.embedding_dim, batch_size=args.batch_size, device=device)
 
